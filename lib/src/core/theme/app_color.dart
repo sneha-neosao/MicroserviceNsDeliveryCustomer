@@ -25,6 +25,7 @@ class AppColor {
   static const Color black = Color(0xFF232323);
   static const Color textPrimary = Color(0xFF2B2B2B);
   static const Color textSecondary = Color(0xFF6F6F6F);
+  static const Color sheetCloseGrey = Color(0xFF616161);
 
   /// Borders
   static const Color border = Color(0xFFFFDFC2);

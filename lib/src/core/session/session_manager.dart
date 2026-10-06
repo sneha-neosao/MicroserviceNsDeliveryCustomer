@@ -270,6 +270,39 @@ class SessionManager {
     return prefs.getString("userPublicId");
   }
 
+  static Future<void> saveDeliveryAddress({
+    required String address,
+    String? title,
+    double? latitude,
+    double? longitude,
+  }) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString("deliveryAddress", address);
+    if (title != null) await prefs.setString("deliveryAddressTitle", title);
+    if (latitude != null) await prefs.setDouble("deliveryLatitude", latitude);
+    if (longitude != null) await prefs.setDouble("deliveryLongitude", longitude);
+  }
+
+  static Future<String?> getDeliveryAddress() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString("deliveryAddress");
+  }
+
+  static Future<String?> getDeliveryAddressTitle() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString("deliveryAddressTitle");
+  }
+
+  static Future<Map<String, double>?> getDeliveryCoordinates() async {
+    final prefs = await SharedPreferences.getInstance();
+    final lat = prefs.getDouble("deliveryLatitude");
+    final lng = prefs.getDouble("deliveryLongitude");
+    if (lat != null && lng != null) {
+      return {"lat": lat, "lng": lng};
+    }
+    return null;
+  }
+
   // static Future<void> saveUserProfile(ProfileResponse value) async {
   //   final prefs = await SharedPreferences.getInstance();
   //   await prefs.setString("userProfile", value.toRawJson());

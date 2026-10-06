@@ -222,56 +222,38 @@ class _CustomBottomNavBarState extends State<CustomBottomNavBar>
                           child: Container(
                             height: barHeight,
                             alignment: Alignment.center,
-                            child: Stack(
-                              alignment: Alignment.center,
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              mainAxisSize: MainAxisSize.min,
                               children: [
-                                // Unselected tab: white icon + label
+                                // Unselected icon fades out when active since floating circle displays it,
+                                // but retains exact 20.h space so label position never shifts
                                 Opacity(
                                   opacity: iconOpacity,
-                                  child: Column(
-                                    mainAxisAlignment: MainAxisAlignment.center,
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      Image.asset(
-                                        item.icon,
-                                        width: 20.w,
-                                        height: 20.h,
-                                        fit: BoxFit.contain,
-                                        color: AppColor.pureWhite,
-                                      ),
-                                      3.hS,
-                                      Text(
-                                        item.label.tr(),
-                                        maxLines: 1,
-                                        overflow: TextOverflow.ellipsis,
-                                        style: textTheme.bodySmall?.copyWith(
-                                          color: AppColor.pureWhite.withValues(alpha: 0.9),
-                                          fontSize: 10.5.sp,
-                                          fontWeight: FontWeight.w500,
-                                        ),
-                                      ),
-                                    ],
+                                  child: Image.asset(
+                                    item.icon,
+                                    width: 20.w,
+                                    height: 20.h,
+                                    fit: BoxFit.contain,
+                                    color: AppColor.pureWhite,
                                   ),
                                 ),
-
-                                // Selected tab: white label sits cleanly below the circular scoop cradle
-                                if (activeFactor > 0.0)
-                                  Opacity(
-                                    opacity: activeFactor,
-                                    child: Padding(
-                                      padding: EdgeInsets.only(top: 38.h),
-                                      child: Text(
-                                        item.label.tr(),
-                                        maxLines: 1,
-                                        overflow: TextOverflow.ellipsis,
-                                        style: textTheme.bodySmall?.copyWith(
-                                          color: AppColor.pureWhite,
-                                          fontSize: 11.sp,
-                                          fontWeight: FontWeight.w700,
-                                        ),
-                                      ),
+                                3.hS,
+                                // Label remains at the exact same vertical baseline for selected & unselected options
+                                Text(
+                                  item.label.tr(),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: textTheme.bodySmall?.copyWith(
+                                    color: AppColor.pureWhite.withValues(
+                                      alpha: 0.85 + (0.15 * activeFactor),
                                     ),
+                                    fontSize: 10.5.sp,
+                                    fontWeight: activeFactor > 0.5
+                                        ? FontWeight.w700
+                                        : FontWeight.w500,
                                   ),
+                                ),
                               ],
                             ),
                           ),

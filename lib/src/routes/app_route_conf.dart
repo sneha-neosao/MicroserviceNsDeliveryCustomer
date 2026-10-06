@@ -4,6 +4,7 @@ import '../features/cart/presentation/pages/cart_screen.dart';
 import '../features/home/presentation/pages/home_screen.dart';
 import '../features/login/presentation/pages/login_screen.dart';
 import '../features/main_screen/presentation/pages/main_screen.dart';
+import '../features/map/presentation/pages/select_location_screen.dart';
 import '../features/otp/presentation/pages/verify_otp_screen.dart';
 import '../features/profile/presentation/pages/profile_screen.dart';
 import '../features/register/presentation/pages/register_screen.dart';
@@ -53,6 +54,20 @@ class AppRouteConf {
         pageBuilder: (context, state) {
           final mobile = state.extra as String?;
           return _fadePage(RegisterScreen(mobile: mobile));
+        },
+      ),
+
+      GoRoute(
+        path: AppRoute.selectLocation.path,
+        name: AppRoute.selectLocation.name,
+        pageBuilder: (context, state) {
+          final extra = state.extra as Map<String, double>?;
+          return _fadePage(
+            SelectLocationScreen(
+              initialLat: extra?['lat'],
+              initialLng: extra?['lng'],
+            ),
+          );
         },
       ),
 
