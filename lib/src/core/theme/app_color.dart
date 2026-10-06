@@ -76,6 +76,20 @@ class AppColor {
   static const Color profileTileBg = Color(0xFFE7FAF3);
   static const Color profileIconCircle = Color(0xFF167D78);
   static const Color profileDeleteBg = Color(0xFFF2F3EE);
+  static const Color profileBackground = Color(0xFFFBF8F5);
+  static const Color walletCardBg = Color(0xFFFFF1E4);
+  static const Color walletCardBorder = Color(0xFFFFDFC6);
+  static const Color quickActionOrdersBg = Color(0xFFF5FAF5);
+  static const Color quickActionWishlistBg = Color(0xFFFFF4F2);
+  static const Color quickActionHistoryBg = Color(0xFFFFF9EE);
+  static const Color quickActionCouponsBg = Color(0xFFFBF4FA);
+  static const Color goldCoin = Color(0xFFFFB800);
+  static const Color goldCoinDark = Color(0xFFE69B00);
+  static const Color goldCoinLight = Color(0xFFFFDF70);
+  static const Color profileCardBorder = Color(0xFFF0EAE3);
+  static const Color cardboardBox = Color(0xFFD49B6A);
+  static const Color heartRed = Color(0xFFFF5252);
+  static const Color couponRed = Color(0xFFFF5E57);
 
   /// Charging & Navigation Dark Navy Backgrounds
   static const Color chargingCardBg = Color(0xFF02162B);
