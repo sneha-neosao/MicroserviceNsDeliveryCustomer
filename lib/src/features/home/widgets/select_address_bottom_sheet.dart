@@ -5,7 +5,7 @@ import '../../../core/services/location_service.dart';
 import '../../../core/session/session_manager.dart';
 import '../../../core/theme/app_color.dart';
 import '../../widgets/snackbar_widget.dart';
-import '../../map/presentation/pages/select_location_screen.dart';
+import '../../addresses/presentation/pages/select_location_screen.dart';
 
 /// Modal bottom sheet for choosing delivery address with:
 /// - Outside top-center circular grey close button with white 0.5 border
@@ -264,14 +264,14 @@ class _SelectAddressBottomSheetState extends State<SelectAddressBottomSheet> {
                       ),
                       12.wS,
 
-                      // Option 2: Add New Location
+                      // Option 2: Add New Address
                       Expanded(
                         child: _LocationOptionCard(
                           icon: Icons.add_location_alt_outlined,
                           iconColor: AppColor.deliveryButtonStart,
                           iconBgColor: AppColor.deliveryButtonStart.withValues(alpha: 0.1),
-                          title: 'Add New Location',
-                          subtitle: 'Select on Map',
+                          title: 'Add New Address',
+                          subtitle: 'Saved & New',
                           isLoading: false,
                           onTap: _handleAddNewLocation,
                         ),

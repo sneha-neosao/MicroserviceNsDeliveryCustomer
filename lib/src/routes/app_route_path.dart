@@ -17,7 +17,8 @@ enum AppRoute {
   charging(path: "/charging"),
   walletHistory(path: "/wallet_history"),
   editProfile(path: "/edit_profile"),
-  selectLocation(path: "/select_location");
+  selectLocation(path: "/select_location"),
+  address(path: "/address");
 
   final String path;
 

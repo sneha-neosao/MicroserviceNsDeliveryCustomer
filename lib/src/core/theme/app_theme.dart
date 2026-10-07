@@ -32,7 +32,7 @@ class AppTheme {
       ),
 
       scaffoldBackgroundColor:
-      isDark ? const Color(0xFF1C1C1C) : AppColor.screenBg,
+          isDark ? const Color(0xFF1C1C1C) : AppColor.profileBackground,
 
       appBarTheme: const AppBarTheme(
         elevation: 0,

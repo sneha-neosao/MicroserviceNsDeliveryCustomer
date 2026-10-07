@@ -103,7 +103,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         statusBarBrightness: Brightness.light,
       ),
       child: Scaffold(
-        backgroundColor: AppColor.profileBackground,
+        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
         body: SafeArea(
           bottom: false,
           child: Column(
@@ -112,7 +112,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               // Sticky Header Bar pinned at the top
               Container(
                 width: double.infinity,
-                color: AppColor.profileBackground,
+                color: Theme.of(context).scaffoldBackgroundColor,
                 padding: EdgeInsets.fromLTRB(16.w, 14.h, 16.w, 10.h),
                 child: const ProfileHeaderBarWidget(),
               ),

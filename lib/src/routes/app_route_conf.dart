@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import '../features/addresses/presentation/pages/address_screen.dart';
+import '../features/addresses/presentation/pages/select_location_screen.dart';
 import '../features/cart/presentation/pages/cart_screen.dart';
 import '../features/home/presentation/pages/home_screen.dart';
 import '../features/login/presentation/pages/login_screen.dart';
 import '../features/main_screen/presentation/pages/main_screen.dart';
-import '../features/map/presentation/pages/select_location_screen.dart';
 import '../features/otp/presentation/pages/verify_otp_screen.dart';
 import '../features/profile/presentation/pages/profile_screen.dart';
 import '../features/register/presentation/pages/register_screen.dart';
@@ -68,6 +69,14 @@ class AppRouteConf {
               initialLng: extra?['lng'],
             ),
           );
+        },
+      ),
+
+      GoRoute(
+        path: AppRoute.address.path,
+        name: AppRoute.address.name,
+        pageBuilder: (context, state) {
+          return _fadePage(const AddressScreen());
         },
       ),
 

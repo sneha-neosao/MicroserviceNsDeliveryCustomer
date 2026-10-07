@@ -21,3 +21,7 @@ export '../../features/otp/bloc/verify_otp_form/verify_otp_form_bloc.dart';
 export '../../features/register/domain/usecases/register_usecase.dart';
 export '../../features/register/bloc/register/register_bloc.dart';
 export '../../features/register/bloc/register_form/register_form_bloc.dart';
+export '../../remote/models/address_model/address_list_response.dart';
+export '../../features/addresses/domain/usecases/address_list_usecase.dart';
+export '../../features/addresses/bloc/address_list/address_list_bloc.dart';
+

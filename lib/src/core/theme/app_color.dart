@@ -50,13 +50,7 @@ class AppColor {
   /// Brand Button & EV Gradient Colors
   static const Color buttonGradientStart = Color(0xFF1C9B6A);
   static const Color buttonGradientEnd = Color(0xFF0D4A8D);
-  static const Color screenBg = Color(0xFFF2FFFA);
-
-  /// Login Colors
-  static const Color loginInputBg = Color(0xFFE5F9F1);
-  static const Color loginInputBorder = Color(0xFFAFE0CD);
-  static const Color loginCountryBadge = Color(0xFF105A7E);
-  static const Color loginTermsText = Color(0xFF5A6672);
+  static const Color screenBg = Color(0xFFFBF8F5); // Matches profileBackground theme
 
   /// Delivery Login Theme Colors
   static const Color deliveryGreen = Color(0xFF046404);
@@ -74,7 +68,6 @@ class AppColor {
 
   /// Profile Screen & Tile Card Backgrounds
   static const Color profileTileBg = Color(0xFFE7FAF3);
-  static const Color profileIconCircle = Color(0xFF167D78);
   static const Color profileDeleteBg = Color(0xFFF2F3EE);
   static const Color profileBackground = Color(0xFFFBF8F5);
   static const Color walletCardBg = Color(0xFFFFF1E4);

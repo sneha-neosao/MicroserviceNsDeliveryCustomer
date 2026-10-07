@@ -46,6 +46,10 @@ void configureDepedencies() {
   getIt.registerFactory<RegisterBloc>(() => RegisterBloc(getIt<RegisterUseCase>()));
   getIt.registerFactory<RegisterFormBloc>(() => RegisterFormBloc());
 
+  /// Address
+  getIt.registerLazySingleton<AddressListUseCase>(() => AddressListUseCase(getIt<Repository>()));
+  getIt.registerFactory<AddressListBloc>(() => AddressListBloc(getIt<AddressListUseCase>()));
+
   /// API Helper
 
   getIt.registerLazySingleton(() => NetworkInfo());

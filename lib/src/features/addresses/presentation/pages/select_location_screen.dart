@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import '../../../../core/services/location_service.dart';
 import '../../../../core/session/session_manager.dart';
@@ -38,6 +39,7 @@ class _SelectLocationScreenState extends State<SelectLocationScreen> {
   bool _isGeocoding = false;
   bool _isLocatingUser = false;
   Timer? _debounceTimer;
+  int _latestGeocodeRequestId = 0;
 
   @override
   void initState() {
@@ -49,24 +51,16 @@ class _SelectLocationScreenState extends State<SelectLocationScreen> {
   }
 
   Future<void> _initInitialLocation() async {
-    // If coordinates were passed, reverse geocode directly
+    // If coordinates were explicitly passed, reverse geocode directly
     if (widget.initialLat != null && widget.initialLng != null) {
-      await _fetchAddressForCoordinates(_currentCenter);
+      final target = LatLng(widget.initialLat!, widget.initialLng!);
+      _currentCenter = target;
+      _animateToPosition(target, zoom: 17.0);
+      await _fetchAddressForCoordinates(target);
       return;
     }
 
-    // Check saved coordinates in session
-    final savedCoords = await SessionManager.getDeliveryCoordinates();
-    if (savedCoords != null) {
-      final lat = savedCoords['lat']!;
-      final lng = savedCoords['lng']!;
-      _currentCenter = LatLng(lat, lng);
-      _animateToPosition(_currentCenter);
-      await _fetchAddressForCoordinates(_currentCenter);
-      return;
-    }
-
-    // Fallback: fetch current GPS position
+    // Prioritize live current GPS location when opening the map screen
     await _locateUser();
   }
 
@@ -74,37 +68,80 @@ class _SelectLocationScreenState extends State<SelectLocationScreen> {
     if (_isLocatingUser) return;
     setState(() {
       _isLocatingUser = true;
+      _isGeocoding = true;
     });
 
-    final position = await LocationService.getCurrentPosition();
-    if (position != null) {
-      final target = LatLng(position.latitude, position.longitude);
-      _currentCenter = target;
-      _animateToPosition(target);
-      await _fetchAddressForCoordinates(target);
-    } else {
-      await _fetchAddressForCoordinates(_currentCenter);
-    }
+    try {
+      // 1. Initial quick center using last known position ONLY if map is uninitialized
+      if (_currentLocation == null) {
+        try {
+          final lastKnown = await Geolocator.getLastKnownPosition();
+          if (lastKnown != null && mounted) {
+            final target = LatLng(lastKnown.latitude, lastKnown.longitude);
+            _currentCenter = target;
+            _animateToPosition(target, zoom: 16.5);
+          }
+        } catch (_) {}
+      }
 
-    if (mounted) {
-      setState(() {
-        _isLocatingUser = false;
-      });
+      // 2. Fetch fresh live current GPS position with high accuracy
+      final position = await LocationService.getCurrentPosition();
+      if (position != null && mounted) {
+        final target = LatLng(position.latitude, position.longitude);
+        _currentCenter = target;
+        _animateToPosition(target, zoom: 17.5);
+        await _fetchAddressForCoordinates(target);
+      } else if (mounted) {
+        // Fallback if GPS not acquired: check saved session coordinates or default
+        if (_currentLocation == null) {
+          final savedCoords = await SessionManager.getDeliveryCoordinates();
+          if (savedCoords != null) {
+            final target = LatLng(savedCoords['lat']!, savedCoords['lng']!);
+            _currentCenter = target;
+            _animateToPosition(target, zoom: 16.5);
+            await _fetchAddressForCoordinates(target);
+          } else {
+            await _fetchAddressForCoordinates(_currentCenter);
+          }
+        }
+        if (mounted) {
+          appSnackBar(
+            context,
+            AppColor.bright_red,
+            'Please ensure GPS/Location is enabled for accurate live address.',
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        appSnackBar(
+          context,
+          AppColor.bright_red,
+          'Error acquiring current location: $e',
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLocatingUser = false;
+        });
+      }
     }
   }
 
-  void _animateToPosition(LatLng target) {
+  void _animateToPosition(LatLng target, {double zoom = 17.0}) {
     _mapController?.animateCamera(
       CameraUpdate.newCameraPosition(
         CameraPosition(
           target: target,
-          zoom: 16.5,
+          zoom: zoom,
         ),
       ),
     );
   }
 
   Future<void> _fetchAddressForCoordinates(LatLng coords) async {
+    final requestId = ++_latestGeocodeRequestId;
     setState(() {
       _isGeocoding = true;
     });
@@ -114,21 +151,26 @@ class _SelectLocationScreenState extends State<SelectLocationScreen> {
       coords.longitude,
     );
 
-    if (mounted) {
-      setState(() {
-        _currentLocation = result ??
-            DeliveryLocationModel(
-              formattedAddress: '${coords.latitude.toStringAsFixed(4)}, ${coords.longitude.toStringAsFixed(4)}',
-              title: 'Pinned Location',
-              locality: '',
-              city: '',
-              postalCode: '',
-              latitude: coords.latitude,
-              longitude: coords.longitude,
-            );
-        _isGeocoding = false;
-      });
+    if (!mounted || requestId != _latestGeocodeRequestId) {
+      // Discard stale or superseded geocode responses
+      return;
     }
+
+    setState(() {
+      _currentLocation = result ??
+          DeliveryLocationModel(
+            formattedAddress:
+                '${coords.latitude.toStringAsFixed(5)}, ${coords.longitude.toStringAsFixed(5)}',
+            title: 'Pinned Location',
+            addressLine: 'Pinned Location',
+            locality: '',
+            city: '',
+            postalCode: '',
+            latitude: coords.latitude,
+            longitude: coords.longitude,
+          );
+      _isGeocoding = false;
+    });
   }
 
   void _onCameraMove(CameraPosition position) {
@@ -148,7 +190,7 @@ class _SelectLocationScreenState extends State<SelectLocationScreen> {
     }
 
     _debounceTimer?.cancel();
-    _debounceTimer = Timer(const Duration(milliseconds: 300), () {
+    _debounceTimer = Timer(const Duration(milliseconds: 350), () {
       _fetchAddressForCoordinates(_currentCenter);
     });
   }
@@ -157,27 +199,50 @@ class _SelectLocationScreenState extends State<SelectLocationScreen> {
     final target = LatLng(selected.latitude, selected.longitude);
     _currentCenter = target;
     _currentLocation = selected;
-    _animateToPosition(target);
+    _animateToPosition(target, zoom: 17.5);
     setState(() {});
   }
 
-  Future<void> _onConfirmLocation() async {
-    if (_currentLocation == null) return;
+  Future<void> _onConfirmLocation({
+    required String label,
+    required String addressLine,
+    String? landmark,
+    required String city,
+    required String pincode,
+    required bool isDefault,
+  }) async {
+    final fullFormattedAddress = [
+      addressLine.trim(),
+      if (landmark != null && landmark.trim().isNotEmpty) landmark.trim(),
+      city.trim(),
+      pincode.trim(),
+    ].where((e) => e.isNotEmpty).join(', ');
+
+    final confirmedLocation = DeliveryLocationModel(
+      formattedAddress: fullFormattedAddress,
+      title: label,
+      addressLine: addressLine.trim(),
+      locality: landmark?.trim() ?? '',
+      city: city.trim(),
+      postalCode: pincode.trim(),
+      latitude: _currentCenter.latitude,
+      longitude: _currentCenter.longitude,
+    );
 
     await SessionManager.saveDeliveryAddress(
-      address: _currentLocation!.formattedAddress,
-      title: _currentLocation!.title,
-      latitude: _currentLocation!.latitude,
-      longitude: _currentLocation!.longitude,
+      address: confirmedLocation.formattedAddress,
+      title: confirmedLocation.title,
+      latitude: confirmedLocation.latitude,
+      longitude: confirmedLocation.longitude,
     );
 
     if (mounted) {
       appSnackBar(
         context,
         AppColor.deliveryGreen,
-        'Delivery location set to ${_currentLocation!.title}',
+        'Address saved for $label',
       );
-      Navigator.of(context).pop(_currentLocation);
+      Navigator.of(context).pop(confirmedLocation);
     }
   }
 
@@ -196,7 +261,7 @@ class _SelectLocationScreenState extends State<SelectLocationScreen> {
         statusBarIconBrightness: Brightness.dark,
       ),
       child: Scaffold(
-        backgroundColor: AppColor.screenBg,
+        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
         body: Stack(
           children: [
             // 1. Google Map View
@@ -207,6 +272,7 @@ class _SelectLocationScreenState extends State<SelectLocationScreen> {
               ),
               onMapCreated: (controller) {
                 _mapController = controller;
+                _animateToPosition(_currentCenter);
               },
               onCameraMove: _onCameraMove,
               onCameraIdle: _onCameraIdle,
@@ -231,24 +297,24 @@ class _SelectLocationScreenState extends State<SelectLocationScreen> {
               ),
             ),
 
-            // 4. Floating "Locate Me" GPS Button
+            // 4. Floating "Locate Me" GPS Button below search bar
             Positioned(
               right: 18.w,
-              bottom: 210.h,
+              top: 76.h,
               child: MapMyLocationButtonWidget(
                 isLoading: _isLocatingUser,
                 onTap: _locateUser,
               ),
             ),
 
-            // 5. Bottom Location Detail Card with Confirm Button
+            // 5. Bottom Location Detail Sheet with Chips, Form Fields and Confirm Button
             Positioned(
               left: 0,
               right: 0,
               bottom: 0,
               child: MapAddressCardWidget(
                 location: _currentLocation,
-                isLoading: _isGeocoding,
+                isLoading: _isGeocoding || _isMoving,
                 onConfirm: _onConfirmLocation,
               ),
             ),

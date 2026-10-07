@@ -11,6 +11,9 @@ sealed class RemoteDataSource {
   Future<SendOtpResponse> SendOtp(SendOtpParams params);
   Future<VerifyOtpResponse> VerifyOtp(VerifyOtpParams params);
   Future<RegisterResponse> Register(RegisterParams params);
+
+  /// Address
+  Future<AddressListResponse> AddressList();
 }
 
 class RemoteDataSourceImpl implements RemoteDataSource {
@@ -108,6 +111,32 @@ class RemoteDataSourceImpl implements RemoteDataSource {
       );
 
       final respData = RegisterResponse.fromJson(response);
+      return respData;
+    } on EmptyException {
+      throw AuthException();
+    } catch (e) {
+      logger.e(e);
+      if (e is ApiException) {
+        rethrow;
+      }
+      throw ServerException();
+    }
+  }
+
+  @override
+  Future<AddressListResponse> AddressList() async {
+    try {
+      final response = await _helper.execute(
+        method: Method.get,
+        url: ApiUrl.addressList,
+        options: Options(
+          headers: {
+            'accept': '*/*',
+          },
+        ),
+      );
+
+      final respData = AddressListResponse.fromJson(response);
       return respData;
     } on EmptyException {
       throw AuthException();

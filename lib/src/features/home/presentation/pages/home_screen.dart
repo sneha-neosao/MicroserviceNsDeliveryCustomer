@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:go_router/go_router.dart';
 import '../../../../core/extensions/integer_sizedbox_extension.dart';
 import '../../../../core/services/location_service.dart';
 import '../../../../core/session/session_manager.dart';
 import '../../../../core/theme/app_color.dart';
+import '../../../../routes/app_route_path.dart';
 import '../../widgets/home_header_widget.dart';
 import '../../widgets/select_address_bottom_sheet.dart';
 
@@ -53,6 +55,13 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
+  Future<void> _openAddressScreen() async {
+    await context.pushNamed(AppRoute.address.name);
+    if (mounted) {
+      _loadSavedLocation();
+    }
+  }
+
   void _openAddressBottomSheet() {
     SelectAddressBottomSheet.show(
       context,
@@ -69,13 +78,13 @@ class _HomeScreenState extends State<HomeScreen> {
     final textTheme = Theme.of(context).textTheme;
 
     return Scaffold(
-      backgroundColor: AppColor.screenBg,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: Column(
         children: [
           // 1. Top Header with Delivery Location Selector
           HomeHeaderWidget(
             location: _currentLocation,
-            onAddressTap: _openAddressBottomSheet,
+            onAddressTap: _openAddressScreen,
           ),
 
           // 2. Scrollable Home Screen Content
