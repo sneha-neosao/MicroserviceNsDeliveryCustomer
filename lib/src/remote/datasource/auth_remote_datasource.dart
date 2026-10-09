@@ -17,7 +17,11 @@ sealed class RemoteDataSource {
   Future<AddAddressResponse> AddAddress(AddAddressParams params);
   Future<UpdateAddressResponse> EditAddress(EditAddressParams params);
   Future<DeleteAddressResponse> DeleteAddress(DeleteAddressParams params);
+
+  /// Wallet
+  Future<WalletSummaryResponse> WalletSummary();
 }
+
 
 class RemoteDataSourceImpl implements RemoteDataSource {
   final ApiHelper _helper;
@@ -222,6 +226,32 @@ class RemoteDataSourceImpl implements RemoteDataSource {
       );
 
       final respData = DeleteAddressResponse.fromJson(response);
+      return respData;
+    } on EmptyException {
+      throw AuthException();
+    } catch (e) {
+      logger.e(e);
+      if (e is ApiException) {
+        rethrow;
+      }
+      throw ServerException();
+    }
+  }
+
+  @override
+  Future<WalletSummaryResponse> WalletSummary() async {
+    try {
+      final response = await _helper.execute(
+        method: Method.get,
+        url: ApiUrl.walletSummary,
+        options: Options(
+          headers: {
+            'accept': '*/*',
+          },
+        ),
+      );
+
+      final respData = WalletSummaryResponse.fromJson(response);
       return respData;
     } on EmptyException {
       throw AuthException();

@@ -35,3 +35,6 @@ export '../../remote/models/address_model/update_address_response.dart';
 export '../../remote/models/address_model/delete_address_response.dart';
 export '../../features/addresses/domain/usecases/delete_address_usecase.dart';
 export '../../features/addresses/bloc/delete_address/delete_address_bloc.dart';
+export '../../remote/models/wallet_model/wallet_summary_response.dart';
+export '../../features/profile/domain/usecases/wallet_summary_usecase.dart';
+export '../../features/profile/bloc/wallet_summary/wallet_summary_bloc.dart';

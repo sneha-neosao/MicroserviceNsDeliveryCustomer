@@ -58,6 +58,10 @@ void configureDepedencies() {
   getIt.registerLazySingleton<DeleteAddressUseCase>(() => DeleteAddressUseCase(getIt<Repository>()));
   getIt.registerFactory<DeleteAddressBloc>(() => DeleteAddressBloc(getIt<DeleteAddressUseCase>()));
 
+  /// Wallet
+  getIt.registerLazySingleton<WalletSummaryUseCase>(() => WalletSummaryUseCase(getIt<Repository>()));
+  getIt.registerFactory<WalletSummaryBloc>(() => WalletSummaryBloc(getIt<WalletSummaryUseCase>()));
+
   /// API Helper
 
   getIt.registerLazySingleton(() => NetworkInfo());

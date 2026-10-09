@@ -22,6 +22,8 @@ class ApiUrl {
 
   static String deleteAddress(String publicId) =>
       "/web/address/delete?public_id=$publicId";
+
+  static const walletSummary = "/web/summary";
 }
 
 

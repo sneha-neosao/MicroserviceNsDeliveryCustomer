@@ -1,20 +1,26 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:skeletonizer/skeletonizer.dart';
 import '../../../core/extensions/integer_sizedbox_extension.dart';
 import '../../../core/theme/app_color.dart';
 
 /// Wallet balance card matching the reference design:
 /// - "Wallet Balance" label with wallet icon
-/// - Large balance amount ("₹ 2,450")
+/// - Large balance amount ("₹ 0") with Skeletonizer loader
+/// - Points badge ("0 Points") with Skeletonizer loader
 /// - "Add Money ->" orange pill button
 /// - Illustrated wallet with floating gold coins and "Shop More Save More!" tagline
 class ProfileWalletCardWidget extends StatelessWidget {
-  final String balance;
+  final bool isLoading;
+  final num rupees;
+  final num points;
   final VoidCallback? onAddMoneyTap;
 
   const ProfileWalletCardWidget({
     super.key,
-    this.balance = '₹ 2,450',
+    this.isLoading = false,
+    this.rupees = 0,
+    this.points = 0,
     this.onAddMoneyTap,
   });
 
@@ -75,17 +81,60 @@ class ProfileWalletCardWidget extends StatelessWidget {
                       ),
                       6.hS,
 
-                      // Big Amount
-                      Text(
-                        balance,
-                        style: textTheme.headlineMedium?.copyWith(
-                          color: AppColor.charcoal,
-                          fontWeight: FontWeight.w800,
-                          fontSize: 26.sp,
-                          letterSpacing: 0.3,
+                      // Big Amount & Points with Skeletonizer
+                      Skeletonizer(
+                        enabled: isLoading,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            // Big Amount
+                            Text(
+                              '₹ ${rupees is int || rupees % 1 == 0 ? rupees.toInt() : rupees.toStringAsFixed(2)}',
+                              style: textTheme.headlineMedium?.copyWith(
+                                color: AppColor.charcoal,
+                                fontWeight: FontWeight.w800,
+                                fontSize: 24.sp,
+                                letterSpacing: 0.3,
+                              ),
+                            ),
+                            4.hS,
+                            // Points Badge
+                            Container(
+                              padding: EdgeInsets.symmetric(
+                                horizontal: 9.w,
+                                vertical: 3.h,
+                              ),
+                              decoration: BoxDecoration(
+                                color: AppColor.deliveryButtonStart
+                                    .withValues(alpha: 0.12),
+                                borderRadius: BorderRadius.circular(12.r),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(
+                                    Icons.stars_rounded,
+                                    color: AppColor.deliveryButtonStart,
+                                    size: 14.sp,
+                                  ),
+                                  4.wS,
+                                  Text(
+                                    '$points Points',
+                                    style: textTheme.bodySmall?.copyWith(
+                                      color: AppColor.deliveryButtonStart,
+                                      fontSize: 11.5.sp,
+                                      fontWeight: FontWeight.w700,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
                         ),
                       ),
                       12.hS,
+
 
                       // Add Money Button
                       GestureDetector(
