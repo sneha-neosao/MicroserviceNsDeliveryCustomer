@@ -49,10 +49,8 @@ class AddressCardWidget extends StatelessWidget {
     final icon = _getLabelIcon(address.label);
 
     final borderColor = isSelected
-        ? AppColor.deliveryButtonStart
-        : address.isDefault
-            ? AppColor.deliveryGreen.withValues(alpha: 0.4)
-            : AppColor.deliveryInputBorder;
+        ? AppColor.primary
+        : AppColor.deliveryInputBorder;
 
     final bgColor = isSelected
         ? AppColor.deliveryInputBg
@@ -65,12 +63,12 @@ class AddressCardWidget extends StatelessWidget {
         borderRadius: BorderRadius.circular(18.r),
         border: Border.all(
           color: borderColor,
-          width: isSelected ? 1.6 : 1.0,
+          width: isSelected ? 2.0 : 1.0,
         ),
         boxShadow: [
           BoxShadow(
             color: isSelected
-                ? AppColor.deliveryButtonStart.withValues(alpha: 0.08)
+                ? AppColor.primary.withValues(alpha: 0.15)
                 : AppColor.black.withValues(alpha: 0.03),
             blurRadius: 10,
             offset: const Offset(0, 4),
@@ -96,14 +94,14 @@ class AddressCardWidget extends StatelessWidget {
                       height: 32.w,
                       decoration: BoxDecoration(
                         color: isSelected
-                            ? AppColor.deliveryButtonStart.withValues(alpha: 0.12)
+                            ? AppColor.primary.withValues(alpha: 0.12)
                             : AppColor.deliveryGreen.withValues(alpha: 0.1),
                         shape: BoxShape.circle,
                       ),
                       child: Icon(
                         icon,
                         color: isSelected
-                            ? AppColor.deliveryButtonStart
+                            ? AppColor.primary
                             : AppColor.deliveryGreen,
                         size: 17.sp,
                       ),
@@ -210,12 +208,12 @@ class AddressCardWidget extends StatelessWidget {
                         shape: BoxShape.circle,
                         border: Border.all(
                           color: isSelected
-                              ? AppColor.deliveryButtonStart
+                              ? AppColor.primary
                               : AppColor.deliveryInputBorder,
                           width: 2,
                         ),
                         color: isSelected
-                            ? AppColor.deliveryButtonStart
+                            ? AppColor.primary
                             : AppColor.transparent,
                       ),
                       child: isSelected

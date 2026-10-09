@@ -111,27 +111,14 @@ class _VerifyOtpScreenState extends State<VerifyOtpScreen> {
         listener: (context, state) async {
           if (state is VerifyOtpSuccessState) {
             final isRegistered = state.data.data?.isRegistered ?? false;
-            final message = state.data.message.isNotEmpty
-                ? state.data.message
-                : 'Login successful';
 
             if (isRegistered) {
               await SessionManager.saveVerifyOtpSession(state.data);
               if (context.mounted) {
-                appSnackBar(
-                  context,
-                  AppColor.deliveryGreen,
-                  message,
-                );
                 context.goNamed(AppRoute.home.name);
               }
             } else {
               if (context.mounted) {
-                appSnackBar(
-                  context,
-                  AppColor.deliveryGreen,
-                  message,
-                );
                 context.pushNamed(
                   AppRoute.register.name,
                   extra: widget.phone ?? '',

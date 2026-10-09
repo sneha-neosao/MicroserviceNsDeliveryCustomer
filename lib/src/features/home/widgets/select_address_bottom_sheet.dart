@@ -7,6 +7,7 @@ import '../../../core/extensions/integer_sizedbox_extension.dart';
 import '../../../core/services/location_service.dart';
 import '../../../core/session/session_manager.dart';
 import '../../../core/theme/app_color.dart';
+import '../../addresses/data/models/address_list_response.dart';
 import '../../widgets/snackbar_widget.dart';
 
 /// Modal bottom sheet for choosing delivery address with:
@@ -47,6 +48,9 @@ class _SelectAddressBottomSheetState extends State<SelectAddressBottomSheet> {
   String? _savedAddress;
   String? _savedTitle;
 
+  double? _savedLat;
+  double? _savedLng;
+
   @override
   void initState() {
     super.initState();
@@ -56,12 +60,30 @@ class _SelectAddressBottomSheetState extends State<SelectAddressBottomSheet> {
   Future<void> _loadSavedAddress() async {
     final address = await SessionManager.getDeliveryAddress();
     final title = await SessionManager.getDeliveryAddressTitle();
+    final coords = await SessionManager.getDeliveryCoordinates();
     if (mounted && address != null) {
       setState(() {
         _savedAddress = address;
         _savedTitle = title ?? 'Current Delivery Location';
+        _savedLat = coords?['lat'];
+        _savedLng = coords?['lng'];
       });
     }
+  }
+
+  void _handleSelectSavedAddress() {
+    if (_savedAddress == null) return;
+    final location = DeliveryLocationModel(
+      formattedAddress: _savedAddress!,
+      title: _savedTitle ?? 'Saved Address',
+      locality: '',
+      city: '',
+      postalCode: '',
+      latitude: _savedLat ?? 16.69188459279902,
+      longitude: _savedLng ?? 74.23528667539358,
+    );
+    widget.onLocationSelected?.call(location);
+    Navigator.of(context, rootNavigator: true).pop(location);
   }
 
   Future<void> _handleUseCurrentLocation() async {
@@ -117,11 +139,6 @@ class _SelectAddressBottomSheetState extends State<SelectAddressBottomSheet> {
     );
 
     if (mounted) {
-      appSnackBar(
-        context,
-        AppColor.deliveryGreen,
-        'Delivery location set to ${finalLocation.title}',
-      );
       widget.onLocationSelected?.call(finalLocation);
       Navigator.of(context, rootNavigator: true).pop(finalLocation);
     }
@@ -133,11 +150,30 @@ class _SelectAddressBottomSheetState extends State<SelectAddressBottomSheet> {
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       final navContext = globalNavigator.currentContext;
       if (navContext != null && navContext.mounted) {
-        final result = await navContext.pushNamed<DeliveryLocationModel>(
-          AppRoute.selectLocation.name,
+        final result = await navContext.pushNamed<dynamic>(
+          AppRoute.address.name,
         );
         if (result != null) {
-          widget.onLocationSelected?.call(result);
+          if (result is AddressModel) {
+            final title = result.label.isNotEmpty && result.label.toLowerCase() != 'string'
+                ? result.label[0].toUpperCase() + result.label.substring(1)
+                : result.deliveryName.isNotEmpty
+                    ? result.deliveryName
+                    : 'Delivery Address';
+            final fullAddress = result.fullAddress.isNotEmpty ? result.fullAddress : result.addressLine;
+            final loc = DeliveryLocationModel(
+              formattedAddress: fullAddress,
+              title: title,
+              locality: result.city,
+              city: result.city,
+              postalCode: result.pincode,
+              latitude: result.lat,
+              longitude: result.lng,
+            );
+            widget.onLocationSelected?.call(loc);
+          } else if (result is DeliveryLocationModel) {
+            widget.onLocationSelected?.call(result);
+          }
         }
       }
     });
@@ -286,7 +322,6 @@ class _SelectAddressBottomSheetState extends State<SelectAddressBottomSheet> {
                   if (_savedAddress != null && _savedAddress!.isNotEmpty) ...[
                     18.hS,
                     Container(
-                      padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 10.h),
                       decoration: BoxDecoration(
                         color: AppColor.deliveryInputBg,
                         borderRadius: BorderRadius.circular(14.r),
@@ -295,39 +330,54 @@ class _SelectAddressBottomSheetState extends State<SelectAddressBottomSheet> {
                           width: 1,
                         ),
                       ),
-                      child: Row(
-                        children: [
-                          Icon(
-                            Icons.check_circle_rounded,
-                            color: AppColor.deliveryGreen,
-                            size: 18.sp,
-                          ),
-                          10.wS,
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
+                      child: Material(
+                        color: AppColor.transparent,
+                        child: InkWell(
+                          borderRadius: BorderRadius.circular(14.r),
+                          onTap: _handleSelectSavedAddress,
+                          child: Padding(
+                            padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 10.h),
+                            child: Row(
                               children: [
-                                Text(
-                                  _savedTitle ?? 'Saved Address',
-                                  style: textTheme.bodyMedium?.copyWith(
-                                    fontWeight: FontWeight.w700,
-                                    fontSize: 13.sp,
-                                    color: AppColor.charcoal,
+                                Icon(
+                                  Icons.check_circle_rounded,
+                                  color: AppColor.deliveryGreen,
+                                  size: 18.sp,
+                                ),
+                                10.wS,
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        _savedTitle ?? 'Saved Address',
+                                        style: textTheme.bodyMedium?.copyWith(
+                                          fontWeight: FontWeight.w700,
+                                          fontSize: 13.sp,
+                                          color: AppColor.charcoal,
+                                        ),
+                                      ),
+                                      Text(
+                                        _savedAddress!,
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: textTheme.bodySmall?.copyWith(
+                                          color: AppColor.slateGrey,
+                                          fontSize: 11.5.sp,
+                                        ),
+                                      ),
+                                    ],
                                   ),
                                 ),
-                                Text(
-                                  _savedAddress!,
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: textTheme.bodySmall?.copyWith(
-                                    color: AppColor.slateGrey,
-                                    fontSize: 11.5.sp,
-                                  ),
+                                Icon(
+                                  Icons.arrow_forward_ios_rounded,
+                                  color: AppColor.deliveryInputHint,
+                                  size: 12.sp,
                                 ),
                               ],
                             ),
                           ),
-                        ],
+                        ),
                       ),
                     ),
                   ],

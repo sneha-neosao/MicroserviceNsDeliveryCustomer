@@ -40,6 +40,21 @@ class _AddressScreenState extends State<AddressScreen> {
   int? _selectedAddressId;
 
   @override
+  void initState() {
+    super.initState();
+    _loadInitialSelectedId();
+  }
+
+  Future<void> _loadInitialSelectedId() async {
+    final id = await SessionManager.getSelectedAddressId();
+    if (mounted && id != null) {
+      setState(() {
+        _selectedAddressId = id;
+      });
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
     return MultiBlocProvider(
       providers: [
@@ -84,6 +99,27 @@ class _AddressScreenContentState extends State<_AddressScreenContent> {
   void initState() {
     super.initState();
     _currentSelectedId = widget.selectedAddressId;
+    _loadSavedSelectedId();
+  }
+
+  @override
+  void didUpdateWidget(covariant _AddressScreenContent oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.selectedAddressId != oldWidget.selectedAddressId &&
+        widget.selectedAddressId != null) {
+      setState(() {
+        _currentSelectedId = widget.selectedAddressId;
+      });
+    }
+  }
+
+  Future<void> _loadSavedSelectedId() async {
+    final id = await SessionManager.getSelectedAddressId();
+    if (mounted && id != null && _currentSelectedId == null) {
+      setState(() {
+        _currentSelectedId = id;
+      });
+    }
   }
 
   Future<void> _handleUseCurrentLocation() async {
@@ -139,12 +175,7 @@ class _AddressScreenContentState extends State<_AddressScreenContent> {
     );
 
     if (mounted) {
-      appSnackBar(
-        context,
-        AppColor.deliveryGreen,
-        'Delivery location set to ${finalLocation.title}',
-      );
-      Navigator.of(context).pop(finalLocation);
+      context.pop(finalLocation);
     }
   }
 
@@ -169,15 +200,16 @@ class _AddressScreenContentState extends State<_AddressScreenContent> {
       title: title,
       latitude: address.lat,
       longitude: address.lng,
+      addressId: address.id,
     );
+    await SessionManager.saveSelectedAddressId(address.id);
 
     if (mounted) {
-      appSnackBar(
-        context,
-        AppColor.deliveryGreen,
-        'Delivery address set to $title',
-      );
-      Navigator.of(context).pop(address);
+      // Brief 250ms feedback delay so the user visibly sees the orange border before closing
+      await Future.delayed(const Duration(milliseconds: 250));
+      if (mounted) {
+        context.pop(address);
+      }
     }
   }
 

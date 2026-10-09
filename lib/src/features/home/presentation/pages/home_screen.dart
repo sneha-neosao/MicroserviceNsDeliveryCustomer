@@ -1,15 +1,33 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
+import '../../../../configs/injector/injector_conf.dart';
 import '../../../../core/extensions/integer_sizedbox_extension.dart';
 import '../../../../core/services/location_service.dart';
 import '../../../../core/session/session_manager.dart';
 import '../../../../core/theme/app_color.dart';
 import '../../../../routes/app_route_path.dart';
+import '../../../widgets/snackbar_widget.dart';
+import '../../bloc/home/home_bloc.dart';
+import '../../data/models/home_response.dart';
+import '../../widgets/home_banner_section_widget.dart';
+import '../../widgets/home_category_list_section_widget.dart';
 import '../../widgets/home_header_widget.dart';
+import '../../widgets/home_main_categories_widget.dart';
+import '../../widgets/home_product_list_section_widget.dart';
+import '../../widgets/home_shimmer_widget.dart';
 import '../../widgets/select_address_bottom_sheet.dart';
+import '../../../addresses/data/models/address_list_response.dart';
 
-/// Home Screen displaying delivery header and auto-opening address bottom sheet.
+/// Home Screen displaying:
+/// - Top address bar with delivery location selector
+/// - 2 cards in a row presenting main categories (Mart & Food)
+/// - Sections sorted according to priority (1st, 2nd, etc.)
+/// - Dynamic section type rendering:
+///   1. Banners (sliding rectangular cards with orange/grey dots)
+///   2. Category list (small square cards with title above & name below)
+///   3. Product list (Blinkit-like cards with image, price, discount, heart icon, ADD button)
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
 
@@ -18,13 +36,34 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
+  @override
+  Widget build(BuildContext context) {
+    return MultiBlocProvider(
+      providers: [
+        BlocProvider<HomeBloc>(
+          create: (_) => getIt<HomeBloc>(),
+        ),
+      ],
+      child: const _HomeScreenContent(),
+    );
+  }
+}
+
+class _HomeScreenContent extends StatefulWidget {
+  const _HomeScreenContent();
+
+  @override
+  State<_HomeScreenContent> createState() => _HomeScreenContentState();
+}
+
+class _HomeScreenContentState extends State<_HomeScreenContent> {
   DeliveryLocationModel? _currentLocation;
   bool _hasOpenedInitialSheet = false;
 
   @override
   void initState() {
     super.initState();
-    _loadSavedLocation();
+    _loadSavedLocationAndFetch();
 
     // Automatically open the address selection bottom sheet upon landing on Home Screen
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -35,30 +74,86 @@ class _HomeScreenState extends State<HomeScreen> {
     });
   }
 
-  Future<void> _loadSavedLocation() async {
+  Future<void> _loadSavedLocationAndFetch() async {
     final address = await SessionManager.getDeliveryAddress();
     final title = await SessionManager.getDeliveryAddressTitle();
     final coords = await SessionManager.getDeliveryCoordinates();
 
-    if (mounted && address != null) {
-      setState(() {
-        _currentLocation = DeliveryLocationModel(
-          formattedAddress: address,
-          title: title ?? 'Home Delivery',
-          locality: '',
-          city: '',
-          postalCode: '',
-          latitude: coords?['lat'] ?? 0.0,
-          longitude: coords?['lng'] ?? 0.0,
-        );
-      });
+    final lat = coords?['lat'];
+    final lng = coords?['lng'];
+
+    if (mounted) {
+      if (address != null) {
+        setState(() {
+          _currentLocation = DeliveryLocationModel(
+            formattedAddress: address,
+            title: title ?? 'Home Delivery',
+            locality: '',
+            city: '',
+            postalCode: '',
+            latitude: lat ?? 0.0,
+            longitude: lng ?? 0.0,
+          );
+        });
+      }
+
+      // Fetch Home API with coordinates
+      context.read<HomeBloc>().add(
+            HomeGetEvent(
+              offset: 1,
+              limit: 10,
+              lat: lat ?? 16.69188459279902,
+              lng: lng ?? 74.23528667539358,
+            ),
+          );
     }
   }
 
   Future<void> _openAddressScreen() async {
-    await context.pushNamed(AppRoute.address.name);
+    final result = await context.pushNamed<dynamic>(AppRoute.address.name);
     if (mounted) {
-      _loadSavedLocation();
+      if (result is AddressModel) {
+        final title = result.label.isNotEmpty && result.label.toLowerCase() != 'string'
+            ? result.label[0].toUpperCase() + result.label.substring(1)
+            : result.deliveryName.isNotEmpty
+                ? result.deliveryName
+                : 'Delivery Address';
+        final fullAddress = result.fullAddress.isNotEmpty ? result.fullAddress : result.addressLine;
+        setState(() {
+          _currentLocation = DeliveryLocationModel(
+            formattedAddress: fullAddress,
+            title: title,
+            locality: result.city,
+            city: result.city,
+            postalCode: result.pincode,
+            latitude: result.lat,
+            longitude: result.lng,
+          );
+        });
+        context.read<HomeBloc>().add(
+              HomeGetEvent(
+                offset: 1,
+                limit: 10,
+                lat: result.lat != 0.0 ? result.lat : 16.69188459279902,
+                lng: result.lng != 0.0 ? result.lng : 74.23528667539358,
+              ),
+            );
+        return;
+      } else if (result is DeliveryLocationModel) {
+        setState(() {
+          _currentLocation = result;
+        });
+        context.read<HomeBloc>().add(
+              HomeGetEvent(
+                offset: 1,
+                limit: 10,
+                lat: result.latitude != 0.0 ? result.latitude : 16.69188459279902,
+                lng: result.longitude != 0.0 ? result.longitude : 74.23528667539358,
+              ),
+            );
+        return;
+      }
+      _loadSavedLocationAndFetch();
     }
   }
 
@@ -69,288 +164,198 @@ class _HomeScreenState extends State<HomeScreen> {
         setState(() {
           _currentLocation = selectedLocation;
         });
+        context.read<HomeBloc>().add(
+              HomeGetEvent(
+                offset: 1,
+                limit: 10,
+                lat: selectedLocation.latitude != 0.0
+                    ? selectedLocation.latitude
+                    : 16.69188459279902,
+                lng: selectedLocation.longitude != 0.0
+                    ? selectedLocation.longitude
+                    : 74.23528667539358,
+              ),
+            );
       },
     );
   }
 
+  Widget _buildSection(HomeSectionModel section) {
+    final type = section.sectionType.toLowerCase();
+
+    // 1. Banner Section: sliding rectangular cards with dots
+    if (type.contains('banner') || section.banners.isNotEmpty) {
+      return HomeBannerSectionWidget(
+        section: section,
+        onBannerTap: (banner) {},
+      );
+    }
+
+    // 2. Category List: small square cards with name below & title above
+    if (type.contains('category') || section.categories.isNotEmpty) {
+      return HomeCategoryListSectionWidget(
+        section: section,
+        onCategoryTap: (category) {},
+      );
+    }
+
+    // 3. Product List: Blinkit-like cards with image, price, discount, heart icon, ADD button
+    if (type.contains('product') || section.products.isNotEmpty) {
+      return HomeProductListSectionWidget(
+        section: section,
+        onProductTap: (product) {},
+        onAddTap: (product) {
+          appSnackBar(
+            context,
+            AppColor.deliveryGreen,
+            '${product.productName.isNotEmpty ? product.productName : "Item"} added to cart',
+          );
+        },
+      );
+    }
+
+    return const SizedBox.shrink();
+  }
+
   @override
   Widget build(BuildContext context) {
-    final textTheme = Theme.of(context).textTheme;
-
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: Column(
         children: [
-          // 1. Top Header with Delivery Location Selector
+          // 1. Top Header: Only Address Bar
           HomeHeaderWidget(
             location: _currentLocation,
             onAddressTap: _openAddressScreen,
           ),
 
-          // 2. Scrollable Home Screen Content
+          // 2. Scrollable Body Content
           Expanded(
-            child: SingleChildScrollView(
-              physics: const BouncingScrollPhysics(),
-              padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 16.h),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Promotional Quick Delivery Banner
-                  Container(
-                    width: double.infinity,
-                    padding: EdgeInsets.all(16.w),
-                    decoration: BoxDecoration(
-                      gradient: const LinearGradient(
-                        colors: [
-                          AppColor.deliveryButtonStart,
-                          AppColor.deliveryButtonEnd,
-                        ],
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
+            child: RefreshIndicator(
+              color: AppColor.deliveryButtonStart,
+              onRefresh: () async {
+                await _loadSavedLocationAndFetch();
+              },
+              child: BlocConsumer<HomeBloc, HomeState>(
+                listener: (context, state) {
+                  if (state is HomeFailureState) {
+                    appSnackBar(
+                      context,
+                      AppColor.bright_red,
+                      state.message,
+                    );
+                  }
+                },
+                builder: (context, state) {
+                  if (state is HomeLoadingState || state is HomeInitialState) {
+                    return ListView(
+                      padding: EdgeInsets.symmetric(
+                        horizontal: 16.w,
+                        vertical: 14.h,
                       ),
-                      borderRadius: BorderRadius.circular(20.r),
-                      boxShadow: [
-                        BoxShadow(
-                          color: AppColor.deliveryButtonStart.withValues(alpha: 0.25),
-                          blurRadius: 14,
-                          offset: const Offset(0, 5),
-                        ),
+                      physics: const AlwaysScrollableScrollPhysics(
+                        parent: BouncingScrollPhysics(),
+                      ),
+                      children: const [
+                        HomeShimmerWidget(),
                       ],
-                    ),
-                    child: Row(
+                    );
+                  }
+
+                  if (state is HomeFailureState) {
+                    return ListView(
+                      padding: EdgeInsets.symmetric(
+                        horizontal: 20.w,
+                        vertical: 60.h,
+                      ),
+                      physics: const AlwaysScrollableScrollPhysics(
+                        parent: BouncingScrollPhysics(),
+                      ),
                       children: [
-                        Expanded(
+                        Center(
                           child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              Container(
-                                padding: EdgeInsets.symmetric(
-                                  horizontal: 8.w,
-                                  vertical: 4.h,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: AppColor.pureWhite.withValues(alpha: 0.2),
-                                  borderRadius: BorderRadius.circular(8.r),
-                                ),
-                                child: Text(
-                                  '⚡ FAST DELIVERY',
-                                  style: textTheme.bodySmall?.copyWith(
-                                    color: AppColor.pureWhite,
-                                    fontSize: 10.sp,
-                                    fontWeight: FontWeight.w700,
-                                    letterSpacing: 0.5,
+                              Icon(
+                                Icons.error_outline_rounded,
+                                color: AppColor.bright_red,
+                                size: 48.sp,
+                              ),
+                              12.hS,
+                              Text(
+                                state.message,
+                                textAlign: TextAlign.center,
+                                style: Theme.of(context)
+                                    .textTheme
+                                    .bodyMedium
+                                    ?.copyWith(
+                                      color: AppColor.slateGrey,
+                                    ),
+                              ),
+                              16.hS,
+                              ElevatedButton(
+                                onPressed: _loadSavedLocationAndFetch,
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: AppColor.deliveryButtonStart,
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(12.r),
                                   ),
                                 ),
-                              ),
-                              8.hS,
-                              Text(
-                                'Fresh Groceries Delivered in 15 Mins',
-                                style: textTheme.headlineMedium?.copyWith(
-                                  color: AppColor.pureWhite,
-                                  fontSize: 16.sp,
-                                  fontWeight: FontWeight.w800,
-                                  height: 1.25,
-                                ),
-                              ),
-                              4.hS,
-                              Text(
-                                'Quality groceries & daily essentials at doorstep',
-                                style: textTheme.bodySmall?.copyWith(
-                                  color: AppColor.pureWhite.withValues(alpha: 0.9),
-                                  fontSize: 11.5.sp,
+                                child: Text(
+                                  'Retry',
+                                  style: Theme.of(context)
+                                      .textTheme
+                                      .bodyMedium
+                                      ?.copyWith(
+                                        color: AppColor.pureWhite,
+                                        fontWeight: FontWeight.w700,
+                                      ),
                                 ),
                               ),
                             ],
                           ),
                         ),
-                        10.wS,
-                        Image.asset(
-                          'assets/images/app_logo.png',
-                          width: 60.w,
-                          fit: BoxFit.contain,
-                        ),
                       ],
-                    ),
-                  ),
-                  20.hS,
+                    );
+                  }
 
-                  // "Change Delivery Address" Card for quick access
-                  GestureDetector(
-                    onTap: _openAddressBottomSheet,
-                    child: Container(
-                      padding: EdgeInsets.all(14.w),
-                      decoration: BoxDecoration(
-                        color: AppColor.pureWhite,
-                        borderRadius: BorderRadius.circular(16.r),
-                        border: Border.all(
-                          color: AppColor.deliveryInputBorder,
-                          width: 1,
-                        ),
-                        boxShadow: [
-                          BoxShadow(
-                            color: AppColor.black.withValues(alpha: 0.03),
-                            blurRadius: 8,
-                            offset: const Offset(0, 2),
-                          ),
-                        ],
-                      ),
-                      child: Row(
-                        children: [
-                          Container(
-                            padding: EdgeInsets.all(8.w),
-                            decoration: BoxDecoration(
-                              color: AppColor.deliveryGreen.withValues(alpha: 0.1),
-                              shape: BoxShape.circle,
-                            ),
-                            child: Icon(
-                              Icons.pin_drop_rounded,
-                              color: AppColor.deliveryGreen,
-                              size: 18.sp,
-                            ),
-                          ),
-                          12.wS,
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  'Delivery Location',
-                                  style: textTheme.bodySmall?.copyWith(
-                                    color: AppColor.slateGrey,
-                                    fontSize: 11.sp,
-                                    fontWeight: FontWeight.w500,
-                                  ),
-                                ),
-                                2.hS,
-                                Text(
-                                  _currentLocation?.formattedAddress ??
-                                      'Tap to select your delivery location',
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: textTheme.bodyMedium?.copyWith(
-                                    color: AppColor.charcoal,
-                                    fontSize: 13.sp,
-                                    fontWeight: FontWeight.w700,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                          Icon(
-                            Icons.arrow_forward_ios_rounded,
-                            color: AppColor.deliveryInputHint,
-                            size: 14.sp,
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                  24.hS,
+                  final homeData = (state as HomeSuccessState).data.data;
+                  final mainCategories =
+                      homeData?.mainCategories?.items ?? <MainCategoryModel>[];
+                  final sections =
+                      homeData?.homeSections?.items ?? <HomeSectionModel>[];
 
-                  // Categories Header
-                  Text(
-                    'Explore Categories',
-                    style: textTheme.headlineMedium?.copyWith(
-                      color: AppColor.charcoal,
-                      fontSize: 16.sp,
-                      fontWeight: FontWeight.w800,
-                    ),
-                  ),
-                  12.hS,
+                  // Sort sections by priority (1st priority first, 2nd next, etc.)
+                  final sortedSections = List<HomeSectionModel>.from(sections)
+                    ..sort((a, b) => a.priority.compareTo(b.priority));
 
-                  // Category Cards Grid
-                  Row(
+                  return ListView(
+                    physics: const AlwaysScrollableScrollPhysics(
+                      parent: BouncingScrollPhysics(),
+                    ),
+                    padding: EdgeInsets.fromLTRB(16.w, 14.h, 16.w, 110.h),
                     children: [
-                      _CategoryCard(
-                        title: 'Fresh Vegetables',
-                        icon: Icons.eco_rounded,
-                        color: AppColor.deliveryGreen,
-                      ),
-                      12.wS,
-                      _CategoryCard(
-                        title: 'Dairy & Eggs',
-                        icon: Icons.egg_alt_rounded,
-                        color: AppColor.deliveryButtonStart,
-                      ),
-                      12.wS,
-                      _CategoryCard(
-                        title: 'Beverages',
-                        icon: Icons.local_drink_rounded,
-                        color: AppColor.buttonGradientEnd,
-                      ),
+                      // 2 Main Category Cards in a Row (e.g. Mart & Food)
+                      if (mainCategories.isNotEmpty) ...[
+                        HomeMainCategoriesWidget(
+                          categories: mainCategories,
+                          onCategoryTap: (cat) {},
+                        ),
+                        18.hS,
+                      ],
+
+                      // Sections according to Priority
+                      for (int i = 0; i < sortedSections.length; i++) ...[
+                        _buildSection(sortedSections[i]),
+                        if (i < sortedSections.length - 1) 18.hS,
+                      ],
                     ],
-                  ),
-                ],
+                  );
+                },
               ),
             ),
           ),
         ],
-      ),
-    );
-  }
-}
-
-class _CategoryCard extends StatelessWidget {
-  final String title;
-  final IconData icon;
-  final Color color;
-
-  const _CategoryCard({
-    required this.title,
-    required this.icon,
-    required this.color,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final textTheme = Theme.of(context).textTheme;
-
-    return Expanded(
-      child: Container(
-        padding: EdgeInsets.symmetric(vertical: 16.h, horizontal: 8.w),
-        decoration: BoxDecoration(
-          color: AppColor.pureWhite,
-          borderRadius: BorderRadius.circular(16.r),
-          border: Border.all(
-            color: AppColor.deliveryInputBorder,
-            width: 1,
-          ),
-          boxShadow: [
-            BoxShadow(
-              color: AppColor.black.withValues(alpha: 0.03),
-              blurRadius: 6,
-              offset: const Offset(0, 2),
-            ),
-          ],
-        ),
-        child: Column(
-          children: [
-            Container(
-              padding: EdgeInsets.all(10.w),
-              decoration: BoxDecoration(
-                color: color.withValues(alpha: 0.1),
-                shape: BoxShape.circle,
-              ),
-              child: Icon(
-                icon,
-                color: color,
-                size: 22.sp,
-              ),
-            ),
-            8.hS,
-            Text(
-              title,
-              textAlign: TextAlign.center,
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-              style: textTheme.bodySmall?.copyWith(
-                color: AppColor.charcoal,
-                fontSize: 11.5.sp,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ],
-        ),
       ),
     );
   }

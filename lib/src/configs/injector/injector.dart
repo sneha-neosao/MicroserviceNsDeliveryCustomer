@@ -38,3 +38,6 @@ export '../../features/addresses/bloc/delete_address/delete_address_bloc.dart';
 export '../../remote/models/wallet_model/wallet_summary_response.dart';
 export '../../features/profile/domain/usecases/wallet_summary_usecase.dart';
 export '../../features/profile/bloc/wallet_summary/wallet_summary_bloc.dart';
+export '../../remote/models/home_model/home_response.dart';
+export '../../features/home/domain/usecases/home_usecase.dart';
+export '../../features/home/bloc/home/home_bloc.dart';

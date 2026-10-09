@@ -275,12 +275,24 @@ class SessionManager {
     String? title,
     double? latitude,
     double? longitude,
+    int? addressId,
   }) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString("deliveryAddress", address);
     if (title != null) await prefs.setString("deliveryAddressTitle", title);
     if (latitude != null) await prefs.setDouble("deliveryLatitude", latitude);
     if (longitude != null) await prefs.setDouble("deliveryLongitude", longitude);
+    if (addressId != null) await prefs.setInt("selectedAddressId", addressId);
+  }
+
+  static Future<void> saveSelectedAddressId(int id) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setInt("selectedAddressId", id);
+  }
+
+  static Future<int?> getSelectedAddressId() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getInt("selectedAddressId");
   }
 
   static Future<String?> getDeliveryAddress() async {

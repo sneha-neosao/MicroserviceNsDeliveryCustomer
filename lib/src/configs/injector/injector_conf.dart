@@ -62,6 +62,10 @@ void configureDepedencies() {
   getIt.registerLazySingleton<WalletSummaryUseCase>(() => WalletSummaryUseCase(getIt<Repository>()));
   getIt.registerFactory<WalletSummaryBloc>(() => WalletSummaryBloc(getIt<WalletSummaryUseCase>()));
 
+  /// Home
+  getIt.registerLazySingleton<HomeUseCase>(() => HomeUseCase(getIt<Repository>()));
+  getIt.registerFactory<HomeBloc>(() => HomeBloc(getIt<HomeUseCase>()));
+
   /// API Helper
 
   getIt.registerLazySingleton(() => NetworkInfo());

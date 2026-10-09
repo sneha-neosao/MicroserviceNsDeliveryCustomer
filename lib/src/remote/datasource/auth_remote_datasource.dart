@@ -20,6 +20,9 @@ sealed class RemoteDataSource {
 
   /// Wallet
   Future<WalletSummaryResponse> WalletSummary();
+
+  /// Home
+  Future<HomeResponse> HomeData(HomeParams params);
 }
 
 
@@ -252,6 +255,37 @@ class RemoteDataSourceImpl implements RemoteDataSource {
       );
 
       final respData = WalletSummaryResponse.fromJson(response);
+      return respData;
+    } on EmptyException {
+      throw AuthException();
+    } catch (e) {
+      logger.e(e);
+      if (e is ApiException) {
+        rethrow;
+      }
+      throw ServerException();
+    }
+  }
+
+  @override
+  Future<HomeResponse> HomeData(HomeParams params) async {
+    try {
+      final response = await _helper.execute(
+        method: Method.get,
+        url: ApiUrl.homeData(
+          offset: params.offset,
+          limit: params.limit,
+          lat: params.lat,
+          lng: params.lng,
+        ),
+        options: Options(
+          headers: {
+            'accept': '*/*',
+          },
+        ),
+      );
+
+      final respData = HomeResponse.fromJson(response);
       return respData;
     } on EmptyException {
       throw AuthException();
