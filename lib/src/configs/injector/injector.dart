@@ -32,3 +32,6 @@ export '../../features/addresses/domain/usecases/edit_address_usecase.dart';
 export '../../features/addresses/bloc/edit_address/edit_address_bloc.dart';
 export '../../features/addresses/bloc/edit_address_form/edit_address_form_bloc.dart';
 export '../../remote/models/address_model/update_address_response.dart';
+export '../../remote/models/address_model/delete_address_response.dart';
+export '../../features/addresses/domain/usecases/delete_address_usecase.dart';
+export '../../features/addresses/bloc/delete_address/delete_address_bloc.dart';

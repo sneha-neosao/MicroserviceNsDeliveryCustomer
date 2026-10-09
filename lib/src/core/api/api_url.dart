@@ -19,5 +19,9 @@ class ApiUrl {
 
   static String updateAddress(String publicId) =>
       "/web/address/update?public_id=$publicId";
+
+  static String deleteAddress(String publicId) =>
+      "/web/address/delete?public_id=$publicId";
 }
+
 

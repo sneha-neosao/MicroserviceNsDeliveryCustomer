@@ -55,6 +55,8 @@ void configureDepedencies() {
   getIt.registerLazySingleton<EditAddressUseCase>(() => EditAddressUseCase(getIt<Repository>()));
   getIt.registerFactory<EditAddressBloc>(() => EditAddressBloc(getIt<EditAddressUseCase>()));
   getIt.registerFactory<EditAddressFormBloc>(() => EditAddressFormBloc());
+  getIt.registerLazySingleton<DeleteAddressUseCase>(() => DeleteAddressUseCase(getIt<Repository>()));
+  getIt.registerFactory<DeleteAddressBloc>(() => DeleteAddressBloc(getIt<DeleteAddressUseCase>()));
 
   /// API Helper
 

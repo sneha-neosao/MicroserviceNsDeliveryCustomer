@@ -11,6 +11,7 @@ import '../../../../core/theme/app_color.dart';
 import '../../../../routes/app_route_path.dart';
 import '../../../widgets/snackbar_widget.dart';
 import '../../bloc/address_list/address_list_bloc.dart';
+import '../../bloc/delete_address/delete_address_bloc.dart';
 import '../../data/models/address_list_response.dart';
 import '../../widgets/address_card_widget.dart';
 import '../../widgets/address_delete_dialog_widget.dart';
@@ -45,6 +46,9 @@ class _AddressScreenState extends State<AddressScreen> {
         BlocProvider<AddressListBloc>(
           create: (_) => getIt<AddressListBloc>()..add(AddressListGetEvent()),
         ),
+        BlocProvider<DeleteAddressBloc>(
+          create: (_) => getIt<DeleteAddressBloc>(),
+        ),
       ],
       child: _AddressScreenContent(
         selectedAddressId: _selectedAddressId,
@@ -74,6 +78,7 @@ class _AddressScreenContent extends StatefulWidget {
 class _AddressScreenContentState extends State<_AddressScreenContent> {
   int? _currentSelectedId;
   bool _isLoadingCurrentLocation = false;
+  bool _isDeleting = false;
 
   @override
   void initState() {
@@ -199,16 +204,15 @@ class _AddressScreenContentState extends State<_AddressScreenContent> {
   }
 
   Future<void> _handleDeleteAddress(AddressModel address) async {
+    if (_isDeleting) return;
+
     await AddressDeleteDialogWidget.show(
       context,
       address: address,
       onConfirm: () {
-        appSnackBar(
-          context,
-          AppColor.bright_red,
-          'Address deleted successfully',
-        );
-        context.read<AddressListBloc>().add(AddressListGetEvent());
+        context.read<DeleteAddressBloc>().add(
+              DeleteAddressSubmitEvent(publicId: address.publicId),
+            );
       },
     );
   }
@@ -221,35 +225,73 @@ class _AddressScreenContentState extends State<_AddressScreenContent> {
         statusBarIconBrightness: Brightness.dark,
         statusBarBrightness: Brightness.light,
       ),
-      child: Scaffold(
-        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-        body: BlocConsumer<AddressListBloc, AddressListState>(
-          listener: (context, state) {
-            if (state is AddressListFailureState) {
-              appSnackBar(
-                context,
-                AppColor.bright_red,
-                state.message,
-              );
-            }
-          },
-          builder: (context, state) {
-            final addresses = state is AddressListSuccessState
-                ? (state.data.data?.addresses ?? [])
-                : <AddressModel>[];
+      child: BlocListener<DeleteAddressBloc, DeleteAddressState>(
+        listener: (context, deleteState) {
+          if (deleteState is DeleteAddressLoadingState) {
+            setState(() {
+              _isDeleting = true;
+            });
+          } else if (deleteState is DeleteAddressSuccessState) {
+            setState(() {
+              _isDeleting = false;
+            });
+            appSnackBar(
+              context,
+              AppColor.deliveryGreen,
+              deleteState.data.message.isNotEmpty
+                  ? deleteState.data.message
+                  : 'Address deleted successfully',
+            );
+            // Refresh address list API and UI
+            context.read<AddressListBloc>().add(AddressListGetEvent());
+          } else if (deleteState is DeleteAddressFailureState) {
+            setState(() {
+              _isDeleting = false;
+            });
+            appSnackBar(
+              context,
+              AppColor.bright_red,
+              deleteState.message,
+            );
+          }
+        },
+        child: Scaffold(
+          backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+          body: BlocConsumer<AddressListBloc, AddressListState>(
+            listener: (context, state) {
+              if (state is AddressListFailureState) {
+                appSnackBar(
+                  context,
+                  AppColor.bright_red,
+                  state.message,
+                );
+              }
+            },
+            builder: (context, state) {
+              final addresses = state is AddressListSuccessState
+                  ? (state.data.data?.addresses ?? [])
+                  : <AddressModel>[];
 
-            final total = state is AddressListSuccessState
-                ? (state.data.data?.total ?? addresses.length)
-                : 0;
+              final total = state is AddressListSuccessState
+                  ? (state.data.data?.total ?? addresses.length)
+                  : 0;
 
-            final isLoading = state is AddressListLoadingState;
+              final isLoading = state is AddressListLoadingState;
 
-            return Column(
-              children: [
-                // 1. Top Header with title, subtitle and count
-                AddressHeaderWidget(
-                  totalCount: total,
-                ),
+              return Column(
+                children: [
+                  if (_isDeleting)
+                    const LinearProgressIndicator(
+                      color: AppColor.deliveryButtonStart,
+                      backgroundColor: AppColor.deliveryInputBg,
+                      minHeight: 2.5,
+                    ),
+
+                  // 1. Top Header with title, subtitle and count
+                  AddressHeaderWidget(
+                    totalCount: total,
+                  ),
+
                 12.hS,
 
                 // 2. 2 Quick Options: [Use Current Location] and [Add New Location]
@@ -331,6 +373,7 @@ class _AddressScreenContentState extends State<_AddressScreenContent> {
             );
           },
         ),
+      ),
       ),
     );
   }

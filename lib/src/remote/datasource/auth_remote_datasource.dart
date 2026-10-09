@@ -16,6 +16,7 @@ sealed class RemoteDataSource {
   Future<AddressListResponse> AddressList();
   Future<AddAddressResponse> AddAddress(AddAddressParams params);
   Future<UpdateAddressResponse> EditAddress(EditAddressParams params);
+  Future<DeleteAddressResponse> DeleteAddress(DeleteAddressParams params);
 }
 
 class RemoteDataSourceImpl implements RemoteDataSource {
@@ -195,6 +196,32 @@ class RemoteDataSourceImpl implements RemoteDataSource {
       );
 
       final respData = UpdateAddressResponse.fromJson(response);
+      return respData;
+    } on EmptyException {
+      throw AuthException();
+    } catch (e) {
+      logger.e(e);
+      if (e is ApiException) {
+        rethrow;
+      }
+      throw ServerException();
+    }
+  }
+
+  @override
+  Future<DeleteAddressResponse> DeleteAddress(DeleteAddressParams params) async {
+    try {
+      final response = await _helper.execute(
+        method: Method.delete,
+        url: ApiUrl.deleteAddress(params.publicId),
+        options: Options(
+          headers: {
+            'accept': '*/*',
+          },
+        ),
+      );
+
+      final respData = DeleteAddressResponse.fromJson(response);
       return respData;
     } on EmptyException {
       throw AuthException();
