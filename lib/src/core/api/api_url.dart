@@ -16,5 +16,8 @@ class ApiUrl {
   static const addressList = "/web/address/list";
 
   static const addAddress = "/web/address/add";
+
+  static String updateAddress(String publicId) =>
+      "/web/address/update?public_id=$publicId";
 }
 

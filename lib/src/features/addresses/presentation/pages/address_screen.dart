@@ -189,11 +189,8 @@ class _AddressScreenContentState extends State<_AddressScreenContent> {
 
   Future<void> _handleEditAddress(AddressModel address) async {
     final result = await context.pushNamed<DeliveryLocationModel>(
-      AppRoute.selectLocation.name,
-      extra: <String, double>{
-        if (address.lat != 0.0) 'lat': address.lat,
-        if (address.lng != 0.0) 'lng': address.lng,
-      },
+      AppRoute.editAddress.name,
+      extra: address,
     );
 
     if (result != null && mounted) {

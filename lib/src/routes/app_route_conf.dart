@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import '../features/addresses/data/models/address_list_response.dart';
 import '../features/addresses/presentation/pages/address_screen.dart';
+import '../features/addresses/presentation/pages/edit_address_screen.dart';
 import '../features/addresses/presentation/pages/select_location_screen.dart';
 import '../features/cart/presentation/pages/cart_screen.dart';
 import '../features/home/presentation/pages/home_screen.dart';
@@ -77,6 +79,19 @@ class AppRouteConf {
         name: AppRoute.address.name,
         pageBuilder: (context, state) {
           return _fadePage(const AddressScreen());
+        },
+      ),
+
+      GoRoute(
+        path: AppRoute.editAddress.path,
+        name: AppRoute.editAddress.name,
+        pageBuilder: (context, state) {
+          final address = state.extra as AddressModel?;
+          return _fadePage(
+            EditAddressScreen(
+              address: address ?? const AddressModel(),
+            ),
+          );
         },
       ),
 
