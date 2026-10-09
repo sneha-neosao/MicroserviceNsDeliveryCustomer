@@ -2,11 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:go_router/go_router.dart';
 import '../../../../configs/injector/injector_conf.dart';
 import '../../../../core/extensions/integer_sizedbox_extension.dart';
 import '../../../../core/services/location_service.dart';
 import '../../../../core/session/session_manager.dart';
 import '../../../../core/theme/app_color.dart';
+import '../../../../routes/app_route_path.dart';
 import '../../../widgets/snackbar_widget.dart';
 import '../../bloc/address_list/address_list_bloc.dart';
 import '../../data/models/address_list_response.dart';
@@ -175,10 +177,8 @@ class _AddressScreenContentState extends State<_AddressScreenContent> {
   }
 
   Future<void> _handleAddNewAddress() async {
-    final result = await Navigator.of(context).push<DeliveryLocationModel>(
-      MaterialPageRoute(
-        builder: (_) => const SelectLocationScreen(),
-      ),
+    final result = await context.pushNamed<DeliveryLocationModel>(
+      AppRoute.selectLocation.name,
     );
 
     if (result != null && mounted) {
@@ -188,13 +188,12 @@ class _AddressScreenContentState extends State<_AddressScreenContent> {
   }
 
   Future<void> _handleEditAddress(AddressModel address) async {
-    final result = await Navigator.of(context).push<DeliveryLocationModel>(
-      MaterialPageRoute(
-        builder: (_) => SelectLocationScreen(
-          initialLat: address.lat != 0.0 ? address.lat : null,
-          initialLng: address.lng != 0.0 ? address.lng : null,
-        ),
-      ),
+    final result = await context.pushNamed<DeliveryLocationModel>(
+      AppRoute.selectLocation.name,
+      extra: <String, double>{
+        if (address.lat != 0.0) 'lat': address.lat,
+        if (address.lng != 0.0) 'lng': address.lng,
+      },
     );
 
     if (result != null && mounted) {

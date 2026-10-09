@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:go_router/go_router.dart';
+import '../../../routes/app_route_conf.dart';
+import '../../../routes/app_route_path.dart';
 import '../../../core/extensions/integer_sizedbox_extension.dart';
 import '../../../core/services/location_service.dart';
 import '../../../core/session/session_manager.dart';
 import '../../../core/theme/app_color.dart';
 import '../../widgets/snackbar_widget.dart';
-import '../../addresses/presentation/pages/select_location_screen.dart';
 
 /// Modal bottom sheet for choosing delivery address with:
 /// - Outside top-center circular grey close button with white 0.5 border
@@ -126,18 +128,19 @@ class _SelectAddressBottomSheetState extends State<SelectAddressBottomSheet> {
   }
 
   Future<void> _handleAddNewLocation() async {
-    final nav = Navigator.of(context, rootNavigator: true);
-    nav.pop();
+    Navigator.of(context, rootNavigator: true).pop();
 
-    final result = await nav.push<DeliveryLocationModel>(
-      MaterialPageRoute(
-        builder: (_) => const SelectLocationScreen(),
-      ),
-    );
-
-    if (result != null && mounted) {
-      widget.onLocationSelected?.call(result);
-    }
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      final navContext = globalNavigator.currentContext;
+      if (navContext != null && navContext.mounted) {
+        final result = await navContext.pushNamed<DeliveryLocationModel>(
+          AppRoute.selectLocation.name,
+        );
+        if (result != null) {
+          widget.onLocationSelected?.call(result);
+        }
+      }
+    });
   }
 
   @override

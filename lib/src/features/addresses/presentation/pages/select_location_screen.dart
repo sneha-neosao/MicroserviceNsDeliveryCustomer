@@ -1,13 +1,20 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:go_router/go_router.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
+import '../../../../configs/injector/injector_conf.dart';
 import '../../../../core/services/location_service.dart';
 import '../../../../core/session/session_manager.dart';
 import '../../../../core/theme/app_color.dart';
+import '../../../../routes/app_route_path.dart';
 import '../../../widgets/snackbar_widget.dart';
+import '../../bloc/add_address/add_address_bloc.dart';
+import '../../bloc/add_address_form/add_address_form_bloc.dart';
+import '../../domain/usecases/add_address_usecase.dart';
 import '../../widgets/map_address_card_widget.dart';
 import '../../widgets/map_my_location_button_widget.dart';
 import '../../widgets/map_pin_widget.dart';
@@ -29,6 +36,41 @@ class SelectLocationScreen extends StatefulWidget {
 }
 
 class _SelectLocationScreenState extends State<SelectLocationScreen> {
+  @override
+  Widget build(BuildContext context) {
+    return MultiBlocProvider(
+      providers: [
+        BlocProvider<AddAddressBloc>(
+          create: (_) => getIt<AddAddressBloc>(),
+        ),
+        BlocProvider<AddAddressFormBloc>(
+          create: (_) => getIt<AddAddressFormBloc>(),
+        ),
+      ],
+      child: _SelectLocationScreenContent(
+        initialLat: widget.initialLat,
+        initialLng: widget.initialLng,
+      ),
+    );
+  }
+}
+
+class _SelectLocationScreenContent extends StatefulWidget {
+  final double? initialLat;
+  final double? initialLng;
+
+  const _SelectLocationScreenContent({
+    this.initialLat,
+    this.initialLng,
+  });
+
+  @override
+  State<_SelectLocationScreenContent> createState() =>
+      _SelectLocationScreenContentState();
+}
+
+class _SelectLocationScreenContentState
+    extends State<_SelectLocationScreenContent> {
   // Default coordinate (Pune, Maharashtra)
   static const LatLng _defaultLocation = LatLng(18.5204303, 73.8567437);
 
@@ -211,38 +253,43 @@ class _SelectLocationScreenState extends State<SelectLocationScreen> {
     required String pincode,
     required bool isDefault,
   }) async {
-    final fullFormattedAddress = [
-      addressLine.trim(),
-      if (landmark != null && landmark.trim().isNotEmpty) landmark.trim(),
-      city.trim(),
-      pincode.trim(),
-    ].where((e) => e.isNotEmpty).join(', ');
+    // 1. Retrieve delivery name & phone from session
+    String deliveryName = (await SessionManager.getUserName())?.trim() ?? '';
+    String deliveryPhone =
+        (await SessionManager.getUserMobileNumber())?.trim() ?? '';
 
-    final confirmedLocation = DeliveryLocationModel(
-      formattedAddress: fullFormattedAddress,
-      title: label,
+    if (deliveryName.isEmpty || deliveryPhone.isEmpty) {
+      final customer = await SessionManager.getCustomerData();
+      if (deliveryName.isEmpty && customer?.name != null) {
+        deliveryName = customer!.name.trim();
+      }
+      if (deliveryPhone.isEmpty && customer?.contact != null) {
+        deliveryPhone = customer!.contact.trim();
+      }
+    }
+
+    if (deliveryName.isEmpty) {
+      deliveryName = 'Customer';
+    }
+    if (deliveryPhone.isEmpty) {
+      deliveryPhone = '0000000000';
+    }
+
+    final params = AddAddressParams(
+      label: label.toLowerCase().trim(),
+      deliveryName: deliveryName,
+      deliveryPhone: deliveryPhone,
       addressLine: addressLine.trim(),
-      locality: landmark?.trim() ?? '',
+      landmark: landmark?.trim(),
       city: city.trim(),
-      postalCode: pincode.trim(),
-      latitude: _currentCenter.latitude,
-      longitude: _currentCenter.longitude,
-    );
-
-    await SessionManager.saveDeliveryAddress(
-      address: confirmedLocation.formattedAddress,
-      title: confirmedLocation.title,
-      latitude: confirmedLocation.latitude,
-      longitude: confirmedLocation.longitude,
+      pincode: pincode.trim(),
+      lat: _currentCenter.latitude.toString(),
+      lng: _currentCenter.longitude.toString(),
+      isDefault: isDefault,
     );
 
     if (mounted) {
-      appSnackBar(
-        context,
-        AppColor.deliveryGreen,
-        'Address saved for $label',
-      );
-      Navigator.of(context).pop(confirmedLocation);
+      context.read<AddAddressBloc>().add(AddAddressSubmitEvent(params));
     }
   }
 
@@ -255,72 +302,138 @@ class _SelectLocationScreenState extends State<SelectLocationScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return AnnotatedRegion<SystemUiOverlayStyle>(
-      value: const SystemUiOverlayStyle(
-        statusBarColor: AppColor.transparent,
-        statusBarIconBrightness: Brightness.dark,
-      ),
-      child: Scaffold(
-        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-        body: Stack(
-          children: [
-            // 1. Google Map View
-            GoogleMap(
-              initialCameraPosition: CameraPosition(
-                target: _currentCenter,
-                zoom: 16.0,
-              ),
-              onMapCreated: (controller) {
-                _mapController = controller;
-                _animateToPosition(_currentCenter);
-              },
-              onCameraMove: _onCameraMove,
-              onCameraIdle: _onCameraIdle,
-              myLocationEnabled: true,
-              myLocationButtonEnabled: false,
-              zoomControlsEnabled: false,
-              compassEnabled: true,
-              mapToolbarEnabled: false,
-            ),
+    return BlocConsumer<AddAddressBloc, AddAddressState>(
+      listener: (context, state) async {
+        if (state is AddAddressFailureState) {
+          appSnackBar(context, AppColor.bright_red, state.message);
+        } else if (state is AddAddressSuccessState) {
+          final data = state.data.data;
+          DeliveryLocationModel? createdLocation;
 
-            // 2. Center Target Delivery Pin
-            MapPinWidget(isMoving: _isMoving),
+          if (data != null) {
+            final fullAddr = [
+              data.addressLine,
+              if (data.landmark.isNotEmpty) data.landmark,
+              data.city,
+              data.pincode,
+            ].where((e) => e.isNotEmpty).join(', ');
 
-            // 3. Top Floating Search Bar & Back Button
-            SafeArea(
-              child: Padding(
-                padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 10.h),
-                child: MapSearchBarWidget(
-                  onBack: () => Navigator.of(context).pop(),
-                  onLocationSelected: _onLocationSelectedFromSearch,
+            await SessionManager.saveDeliveryAddress(
+              address: fullAddr,
+              title: data.label,
+              latitude: data.lat,
+              longitude: data.lng,
+            );
+
+            createdLocation = DeliveryLocationModel(
+              formattedAddress: fullAddr,
+              title: data.label.isNotEmpty
+                  ? data.label
+                  : 'Delivery Address',
+              locality: '',
+              city: data.city,
+              postalCode: data.pincode,
+              latitude:
+                  data.lat != 0.0 ? data.lat : _currentCenter.latitude,
+              longitude:
+                  data.lng != 0.0 ? data.lng : _currentCenter.longitude,
+            );
+          }
+
+          if (context.mounted) {
+            appSnackBar(
+              context,
+              AppColor.deliveryGreen,
+              state.data.message.isNotEmpty
+                  ? state.data.message
+                  : 'Address added successfully',
+            );
+            if (Navigator.of(context).canPop()) {
+              Navigator.of(context).pop(createdLocation);
+            } else {
+              context.goNamed(AppRoute.address.name);
+            }
+          }
+        }
+      },
+      builder: (context, state) {
+        final isSubmitting = state is AddAddressLoadingState;
+
+        return AnnotatedRegion<SystemUiOverlayStyle>(
+          value: const SystemUiOverlayStyle(
+            statusBarColor: AppColor.transparent,
+            statusBarIconBrightness: Brightness.dark,
+          ),
+          child: Scaffold(
+            backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+            body: Stack(
+              children: [
+                // 1. Google Map View
+                GoogleMap(
+                  initialCameraPosition: CameraPosition(
+                    target: _currentCenter,
+                    zoom: 16.0,
+                  ),
+                  onMapCreated: (controller) {
+                    _mapController = controller;
+                    _animateToPosition(_currentCenter);
+                  },
+                  onCameraMove: _onCameraMove,
+                  onCameraIdle: _onCameraIdle,
+                  myLocationEnabled: true,
+                  myLocationButtonEnabled: false,
+                  zoomControlsEnabled: false,
+                  compassEnabled: true,
+                  mapToolbarEnabled: false,
                 ),
-              ),
-            ),
 
-            // 4. Floating "Locate Me" GPS Button below search bar
-            Positioned(
-              right: 18.w,
-              top: 76.h,
-              child: MapMyLocationButtonWidget(
-                isLoading: _isLocatingUser,
-                onTap: _locateUser,
-              ),
-            ),
+                // 2. Center Target Delivery Pin
+                MapPinWidget(isMoving: _isMoving),
 
-            // 5. Bottom Location Detail Sheet with Chips, Form Fields and Confirm Button
-            Positioned(
-              left: 0,
-              right: 0,
-              bottom: 0,
-              child: MapAddressCardWidget(
-                location: _currentLocation,
-                isLoading: _isGeocoding || _isMoving,
-                onConfirm: _onConfirmLocation,
-              ),
+                // 3. Top Floating Search Bar & Back Button
+                SafeArea(
+                  child: Padding(
+                    padding: EdgeInsets.symmetric(
+                        horizontal: 16.w, vertical: 10.h),
+                    child: MapSearchBarWidget(
+                      onBack: () {
+                        if (Navigator.of(context).canPop()) {
+                          Navigator.of(context).pop();
+                        } else {
+                          context.goNamed(AppRoute.home.name);
+                        }
+                      },
+                      onLocationSelected: _onLocationSelectedFromSearch,
+                    ),
+                  ),
+                ),
+
+                // 4. Floating "Locate Me" GPS Button below search bar
+                Positioned(
+                  right: 18.w,
+                  top: 76.h,
+                  child: MapMyLocationButtonWidget(
+                    isLoading: _isLocatingUser,
+                    onTap: _locateUser,
+                  ),
+                ),
+
+                // 5. Bottom Location Detail Sheet with Chips, Form Fields and Confirm Button
+                Positioned(
+                  left: 0,
+                  right: 0,
+                  bottom: 0,
+                  child: MapAddressCardWidget(
+                    location: _currentLocation,
+                    isLoading: isSubmitting || _isGeocoding || _isMoving,
+                    onConfirm: _onConfirmLocation,
+                  ),
+                ),
+              ],
             ),
-          ],
-        ),
-      ),
+          ),
+        );
+      },
     );
   }
 }

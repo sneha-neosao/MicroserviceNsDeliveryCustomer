@@ -72,7 +72,11 @@ class _MainScreenState extends State<MainScreen> {
         onPopInvokedWithResult: (bool didPop, Object? result) {
           if (didPop) return;
           if (selectedIndex != 0) {
-            context.goNamed(AppRoute.home.name);
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              if (context.mounted) {
+                context.goNamed(AppRoute.home.name);
+              }
+            });
           } else {
             SystemNavigator.pop();
           }

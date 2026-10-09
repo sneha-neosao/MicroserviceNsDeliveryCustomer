@@ -16,6 +16,7 @@ abstract class Repository {
   Future<Either<Failure, VerifyOtpResponse>> verify_otp(VerifyOtpParams params);
   Future<Either<Failure, RegisterResponse>> register(RegisterParams params);
   Future<Either<Failure, AddressListResponse>> address_list();
+  Future<Either<Failure, AddAddressResponse>> add_address(AddAddressParams params);
 
 }
 
@@ -127,6 +128,37 @@ class AuthRepositoryImpl implements Repository {
 
           if (respData.status != 200 && respData.status != 201) {
             return Left(ApiFailure(respData.message.isNotEmpty ? respData.message : "Failed to fetch addresses"));
+          }
+
+          return Right(respData);
+        } on ServerException {
+          return Left(ServerFailure(mapFailureToMessage(ServerFailure(""))));
+        } catch (e) {
+          if (e is ApiException) {
+            return Left(ApiFailure(e.message));
+          }
+          return Left(ServerFailure(mapFailureToMessage(ServerFailure(""))));
+        }
+      },
+      notConnected: () async {
+        try {
+          return Left(InternetFailure(mapFailureToMessage(InternetFailure(""))));
+        } on CacheException {
+          return Left(CacheFailure(mapFailureToMessage(CacheFailure(""))));
+        }
+      },
+    );
+  }
+
+  @override
+  Future<Either<Failure, AddAddressResponse>> add_address(AddAddressParams params) {
+    return _networkInfo.check<AddAddressResponse>(
+      connected: () async {
+        try {
+          final respData = await _remoteDataSource.AddAddress(params);
+
+          if (respData.status != 200 && respData.status != 201) {
+            return Left(ApiFailure(respData.message.isNotEmpty ? respData.message : "Failed to add address"));
           }
 
           return Right(respData);

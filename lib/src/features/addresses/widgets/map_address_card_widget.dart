@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import '../../../core/extensions/integer_sizedbox_extension.dart';
 import '../../../core/services/location_service.dart';
 import '../../../core/theme/app_color.dart';
+import '../bloc/add_address_form/add_address_form_bloc.dart';
 
 typedef OnAddressConfirmCallback = void Function({
   required String label,
@@ -102,6 +104,25 @@ class _MapAddressCardWidgetState extends State<MapAddressCardWidget> {
         _pincodeController.clear();
       }
     }
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        try {
+          context.read<AddAddressFormBloc>().add(
+                AddAddressFormInitializeEvent(
+                  label: _selectedChip.toLowerCase(),
+                  addressLine: _addressLineController.text,
+                  landmark: _landmarkController.text,
+                  city: _cityController.text,
+                  pincode: _pincodeController.text,
+                  isDefault: _isDefault,
+                  lat: loc.latitude.toString(),
+                  lng: loc.longitude.toString(),
+                ),
+              );
+        } catch (_) {}
+      }
+    });
   }
 
   String _extractAddressLineFallback(DeliveryLocationModel loc) {
@@ -140,7 +161,7 @@ class _MapAddressCardWidgetState extends State<MapAddressCardWidget> {
     }
 
     widget.onConfirm(
-      label: _selectedChip,
+      label: _selectedChip.toLowerCase(),
       addressLine: _addressLineController.text.trim(),
       landmark: _landmarkController.text.trim().isNotEmpty
           ? _landmarkController.text.trim()
@@ -162,6 +183,11 @@ class _MapAddressCardWidgetState extends State<MapAddressCardWidget> {
         setState(() {
           _selectedChip = label;
         });
+        try {
+          context.read<AddAddressFormBloc>().add(
+                AddAddressFormLabelChangedEvent(label.toLowerCase()),
+              );
+        } catch (_) {}
       },
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
@@ -295,6 +321,13 @@ class _MapAddressCardWidgetState extends State<MapAddressCardWidget> {
                           controller: _addressLineController,
                           prefixIcon: Icons.home_outlined,
                           isRequired: true,
+                          onChanged: (val) {
+                            try {
+                              context.read<AddAddressFormBloc>().add(
+                                    AddAddressFormAddressLineChangedEvent(val),
+                                  );
+                            } catch (_) {}
+                          },
                         ),
                         10.hS,
 
@@ -305,6 +338,13 @@ class _MapAddressCardWidgetState extends State<MapAddressCardWidget> {
                           controller: _landmarkController,
                           prefixIcon: Icons.near_me_outlined,
                           isRequired: false,
+                          onChanged: (val) {
+                            try {
+                              context.read<AddAddressFormBloc>().add(
+                                    AddAddressFormLandmarkChangedEvent(val),
+                                  );
+                            } catch (_) {}
+                          },
                         ),
                         10.hS,
 
@@ -319,6 +359,13 @@ class _MapAddressCardWidgetState extends State<MapAddressCardWidget> {
                                 controller: _cityController,
                                 prefixIcon: Icons.location_city_outlined,
                                 isRequired: true,
+                                onChanged: (val) {
+                                  try {
+                                    context.read<AddAddressFormBloc>().add(
+                                          AddAddressFormCityChangedEvent(val),
+                                        );
+                                  } catch (_) {}
+                                },
                               ),
                             ),
                             10.wS,
@@ -335,6 +382,14 @@ class _MapAddressCardWidgetState extends State<MapAddressCardWidget> {
                                 inputFormatters: [
                                   FilteringTextInputFormatter.digitsOnly,
                                 ],
+                                onChanged: (val) {
+                                  try {
+                                    context.read<AddAddressFormBloc>().add(
+                                          AddAddressFormPincodeChangedEvent(
+                                              val),
+                                        );
+                                  } catch (_) {}
+                                },
                               ),
                             ),
                           ],
@@ -358,9 +413,16 @@ class _MapAddressCardWidgetState extends State<MapAddressCardWidget> {
                                   width: 1.5,
                                 ),
                                 onChanged: (val) {
+                                  final isDef = val ?? false;
                                   setState(() {
-                                    _isDefault = val ?? false;
+                                    _isDefault = isDef;
                                   });
+                                  try {
+                                    context.read<AddAddressFormBloc>().add(
+                                          AddAddressFormDefaultChangedEvent(
+                                              isDef),
+                                        );
+                                  } catch (_) {}
                                 },
                               ),
                             ),
@@ -368,9 +430,16 @@ class _MapAddressCardWidgetState extends State<MapAddressCardWidget> {
                             GestureDetector(
                               behavior: HitTestBehavior.opaque,
                               onTap: () {
+                                final isDef = !_isDefault;
                                 setState(() {
-                                  _isDefault = !_isDefault;
+                                  _isDefault = isDef;
                                 });
+                                try {
+                                  context.read<AddAddressFormBloc>().add(
+                                        AddAddressFormDefaultChangedEvent(
+                                            isDef),
+                                      );
+                                } catch (_) {}
                               },
                               child: Text(
                                 'Set as default address',
@@ -413,26 +482,40 @@ class _MapAddressCardWidgetState extends State<MapAddressCardWidget> {
                                 borderRadius: BorderRadius.circular(25.r),
                               ),
                               child: Center(
-                                child: Row(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    Text(
-                                      'Confirm',
-                                      style: textTheme.bodyLarge?.copyWith(
-                                        color: AppColor.pureWhite,
-                                        fontSize: 15.sp,
-                                        fontWeight: FontWeight.w700,
-                                        letterSpacing: 0.3,
+                                child: widget.isLoading
+                                    ? SizedBox(
+                                        width: 22.w,
+                                        height: 22.w,
+                                        child: const CircularProgressIndicator(
+                                          strokeWidth: 2.2,
+                                          valueColor:
+                                              AlwaysStoppedAnimation<Color>(
+                                            AppColor.pureWhite,
+                                          ),
+                                        ),
+                                      )
+                                    : Row(
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.center,
+                                        children: [
+                                          Text(
+                                            'Confirm',
+                                            style:
+                                                textTheme.bodyLarge?.copyWith(
+                                              color: AppColor.pureWhite,
+                                              fontSize: 15.sp,
+                                              fontWeight: FontWeight.w700,
+                                              letterSpacing: 0.3,
+                                            ),
+                                          ),
+                                          8.wS,
+                                          Icon(
+                                            Icons.check_circle_rounded,
+                                            color: AppColor.pureWhite,
+                                            size: 18.sp,
+                                          ),
+                                        ],
                                       ),
-                                    ),
-                                    8.wS,
-                                    Icon(
-                                      Icons.check_circle_rounded,
-                                      color: AppColor.pureWhite,
-                                      size: 18.sp,
-                                    ),
-                                  ],
-                                ),
                               ),
                             ),
                           ),
@@ -459,6 +542,7 @@ class _AddressFormField extends StatelessWidget {
   final TextInputType keyboardType;
   final int? maxLength;
   final List<TextInputFormatter>? inputFormatters;
+  final ValueChanged<String>? onChanged;
 
   const _AddressFormField({
     required this.label,
@@ -469,6 +553,7 @@ class _AddressFormField extends StatelessWidget {
     this.keyboardType = TextInputType.text,
     this.maxLength,
     this.inputFormatters,
+    this.onChanged,
   });
 
   @override
@@ -505,6 +590,7 @@ class _AddressFormField extends StatelessWidget {
           keyboardType: keyboardType,
           maxLength: maxLength,
           inputFormatters: inputFormatters,
+          onChanged: onChanged,
           autovalidateMode: AutovalidateMode.onUserInteraction,
           style: textTheme.bodyMedium?.copyWith(
             color: AppColor.charcoal,

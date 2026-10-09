@@ -14,5 +14,7 @@ class ApiUrl {
   static const register = "/web/register";
 
   static const addressList = "/web/address/list";
+
+  static const addAddress = "/web/address/add";
 }
 

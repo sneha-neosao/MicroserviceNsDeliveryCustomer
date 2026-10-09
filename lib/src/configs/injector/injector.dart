@@ -24,4 +24,7 @@ export '../../features/register/bloc/register_form/register_form_bloc.dart';
 export '../../remote/models/address_model/address_list_response.dart';
 export '../../features/addresses/domain/usecases/address_list_usecase.dart';
 export '../../features/addresses/bloc/address_list/address_list_bloc.dart';
-
+export '../../remote/models/address_model/add_address_response.dart';
+export '../../features/addresses/domain/usecases/add_address_usecase.dart';
+export '../../features/addresses/bloc/add_address/add_address_bloc.dart';
+export '../../features/addresses/bloc/add_address_form/add_address_form_bloc.dart';
