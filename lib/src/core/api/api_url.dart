@@ -1,7 +1,7 @@
 class ApiUrl {
   const ApiUrl._();
 
-  static const baseUrl = "http://192.168.1.18:8000/api/v1"; // LOCAL
+  static const baseUrl = "http://192.168.1.8:8000/api/v1"; // LOCAL
   // static const baseUrl = "https://mahachargerapis.neosao.co.in/api/v1"; // TEST
   // static const baseUrl = "https://chargeeatapis.neosao.co.in/api/v1"; // TEST
 
@@ -24,6 +24,8 @@ class ApiUrl {
       "/web/address/delete?public_id=$publicId";
 
   static const walletSummary = "/web/summary";
+
+  static const profile = "/web/profile";
 
   static String homeData({
     int offset = 1,

@@ -66,6 +66,10 @@ void configureDepedencies() {
   getIt.registerLazySingleton<HomeUseCase>(() => HomeUseCase(getIt<Repository>()));
   getIt.registerFactory<HomeBloc>(() => HomeBloc(getIt<HomeUseCase>()));
 
+  /// Profile
+  getIt.registerLazySingleton<ProfileDetailsUseCase>(() => ProfileDetailsUseCase(getIt<Repository>()));
+  getIt.registerFactory<ProfileDetailsBloc>(() => ProfileDetailsBloc(getIt<ProfileDetailsUseCase>()));
+
   /// API Helper
 
   getIt.registerLazySingleton(() => NetworkInfo());

@@ -41,3 +41,6 @@ export '../../features/profile/bloc/wallet_summary/wallet_summary_bloc.dart';
 export '../../remote/models/home_model/home_response.dart';
 export '../../features/home/domain/usecases/home_usecase.dart';
 export '../../features/home/bloc/home/home_bloc.dart';
+export '../../remote/models/profile_model/profile_response.dart';
+export '../../features/profile/domain/usecases/profile_usecase.dart';
+export '../../features/profile/bloc/profile_details/profile_details_bloc.dart';

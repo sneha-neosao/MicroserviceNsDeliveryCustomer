@@ -3,12 +3,14 @@ import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
+import 'package:skeletonizer/skeletonizer.dart';
 import '../../../../configs/injector/injector_conf.dart';
 import '../../../../core/extensions/integer_sizedbox_extension.dart';
 import '../../../../core/session/session_manager.dart';
 import '../../../../core/theme/app_color.dart';
 import '../../../../routes/app_route_path.dart';
 import '../../../widgets/snackbar_widget.dart';
+import '../../bloc/profile_details/profile_details_bloc.dart';
 import '../../bloc/wallet_summary/wallet_summary_bloc.dart';
 import '../../widgets/profile_account_management_widget.dart';
 import '../../widgets/profile_header_bar_widget.dart';
@@ -37,6 +39,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Widget build(BuildContext context) {
     return MultiBlocProvider(
       providers: [
+        BlocProvider<ProfileDetailsBloc>(
+          create: (_) =>
+              getIt<ProfileDetailsBloc>()..add(ProfileDetailsGetEvent()),
+        ),
         BlocProvider<WalletSummaryBloc>(
           create: (_) =>
               getIt<WalletSummaryBloc>()..add(WalletSummaryGetEvent()),
@@ -57,7 +63,7 @@ class _ProfileScreenContent extends StatefulWidget {
 class _ProfileScreenContentState extends State<_ProfileScreenContent> {
   String _name = 'Sneha Jadhav';
   String _mobile = '+91 98765 43210';
-  String _email = 'sneha.jadhav@gmail.com';
+  String? _profileImage;
 
   @override
   void initState() {
@@ -69,7 +75,6 @@ class _ProfileScreenContentState extends State<_ProfileScreenContent> {
     final customer = await SessionManager.getCustomerData();
     final name = await SessionManager.getUserName();
     final mobile = await SessionManager.getUserMobileNumber();
-    final email = await SessionManager.getUserEmail();
 
     if (mounted) {
       setState(() {
@@ -83,12 +88,6 @@ class _ProfileScreenContentState extends State<_ProfileScreenContent> {
           _mobile = customer!.contact;
         } else if (mobile != null && mobile.isNotEmpty) {
           _mobile = mobile;
-        }
-
-        if (customer?.email.isNotEmpty == true) {
-          _email = customer!.email;
-        } else if (email != null && email.isNotEmpty) {
-          _email = email;
         }
       });
     }
@@ -150,6 +149,9 @@ class _ProfileScreenContentState extends State<_ProfileScreenContent> {
                     await _loadUserData();
                     if (context.mounted) {
                       context
+                          .read<ProfileDetailsBloc>()
+                          .add(ProfileDetailsGetEvent());
+                      context
                           .read<WalletSummaryBloc>()
                           .add(WalletSummaryGetEvent());
                     }
@@ -162,16 +164,49 @@ class _ProfileScreenContentState extends State<_ProfileScreenContent> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        // 1. Profile User Info Card
-                        ProfileUserCardWidget(
-                          name: _name,
-                          email: _email,
-                          phone: _mobile,
-                          onEditTap: () {
-                            appSnackBar(
-                              context,
-                              AppColor.deliveryButtonStart,
-                              'Edit profile opened',
+                        // 1. Profile User Info Card (with Skeletonizer & Profile Details API)
+                        BlocConsumer<ProfileDetailsBloc, ProfileDetailsState>(
+                          listener: (context, profileState) {
+                            if (profileState is ProfileDetailsSuccessState) {
+                              final data = profileState.data.data;
+                              if (data != null) {
+                                setState(() {
+                                  if (data.name.isNotEmpty) _name = data.name;
+                                  if (data.contact.isNotEmpty) _mobile = data.contact;
+                                  _profileImage = data.profileImage;
+                                });
+                              }
+                            }
+                          },
+                          builder: (context, profileState) {
+                            final isLoading =
+                                profileState is ProfileDetailsLoadingState;
+                            final data = profileState is ProfileDetailsSuccessState
+                                ? profileState.data.data
+                                : null;
+                            final currentName =
+                                data?.name.isNotEmpty == true ? data!.name : _name;
+                            final currentPhone =
+                                data?.contact.isNotEmpty == true
+                                    ? data!.contact
+                                    : _mobile;
+                            final currentImage =
+                                data?.profileImage ?? _profileImage;
+
+                            return Skeletonizer(
+                              enabled: isLoading,
+                              child: ProfileUserCardWidget(
+                                name: currentName,
+                                phone: currentPhone,
+                                profileImage: currentImage,
+                                onEditTap: () {
+                                  appSnackBar(
+                                    context,
+                                    AppColor.deliveryButtonStart,
+                                    'Edit profile opened',
+                                  );
+                                },
+                              ),
                             );
                           },
                         ),

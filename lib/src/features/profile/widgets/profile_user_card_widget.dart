@@ -4,20 +4,20 @@ import '../../../core/extensions/integer_sizedbox_extension.dart';
 import '../../../core/theme/app_color.dart';
 
 /// User profile information card matching the reference design:
-/// - Avatar with orange ring border
-/// - Name, email with icon, phone with icon, and membership badge
+/// - Avatar with orange ring border (profile image with fallback to initials)
+/// - Name and phone with call icon (email omitted per design request)
 /// - Circular edit button on the right
 class ProfileUserCardWidget extends StatelessWidget {
   final String name;
-  final String email;
   final String phone;
+  final String? profileImage;
   final VoidCallback? onEditTap;
 
   const ProfileUserCardWidget({
     super.key,
     required this.name,
-    required this.email,
     required this.phone,
+    this.profileImage,
     this.onEditTap,
   });
 
@@ -30,12 +30,31 @@ class ProfileUserCardWidget extends StatelessWidget {
     return parts[0][0].toUpperCase();
   }
 
+  Widget _buildInitialsAvatar(BuildContext context, String initials) {
+    final textTheme = Theme.of(context).textTheme;
+    return Container(
+      decoration: const BoxDecoration(
+        shape: BoxShape.circle,
+        color: AppColor.walletCardBg,
+      ),
+      child: Center(
+        child: Text(
+          initials,
+          style: textTheme.headlineSmall?.copyWith(
+            color: AppColor.deliveryButtonStart,
+            fontWeight: FontWeight.w800,
+            fontSize: 22.sp,
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
     final displayName = name.isNotEmpty ? name : 'User';
     final displayPhone = phone.isNotEmpty ? phone : '+91 98765 43210';
-    final displayEmail = email.isNotEmpty ? email : 'user@example.com';
     final initials = _getInitials(displayName);
 
     return Container(
@@ -71,26 +90,35 @@ class ProfileUserCardWidget extends StatelessWidget {
                 width: 2,
               ),
             ),
-            child: Container(
-              decoration: const BoxDecoration(
-                shape: BoxShape.circle,
-                color: AppColor.walletCardBg,
-              ),
-              child: Center(
-                child: Text(
-                  initials,
-                  style: textTheme.headlineSmall?.copyWith(
-                    color: AppColor.deliveryButtonStart,
-                    fontWeight: FontWeight.w800,
-                    fontSize: 22.sp,
-                  ),
-                ),
-              ),
+            child: ClipOval(
+              child: profileImage != null && profileImage!.trim().isNotEmpty
+                  ? Image.network(
+                      profileImage!.trim(),
+                      fit: BoxFit.cover,
+                      width: double.infinity,
+                      height: double.infinity,
+                      loadingBuilder: (context, child, progress) {
+                        if (progress == null) return child;
+                        return const Center(
+                          child: SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: AppColor.deliveryButtonStart,
+                            ),
+                          ),
+                        );
+                      },
+                      errorBuilder: (context, error, stackTrace) =>
+                          _buildInitialsAvatar(context, initials),
+                    )
+                  : _buildInitialsAvatar(context, initials),
             ),
           ),
           14.wS,
 
-          // 2. User Details Column
+          // 2. User Details Column (Only Name & Phone)
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -107,42 +135,17 @@ class ProfileUserCardWidget extends StatelessWidget {
                     fontSize: 16.5.sp,
                   ),
                 ),
-                4.hS,
-
-                // Email
-                Row(
-                  children: [
-                    Icon(
-                      Icons.mail_outline_rounded,
-                      size: 13.sp,
-                      color: AppColor.slateGrey,
-                    ),
-                    5.wS,
-                    Expanded(
-                      child: Text(
-                        displayEmail,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: textTheme.bodySmall?.copyWith(
-                          color: AppColor.slateGrey,
-                          fontSize: 11.5.sp,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-                3.hS,
+                6.hS,
 
                 // Phone
                 Row(
                   children: [
                     Icon(
                       Icons.call_outlined,
-                      size: 13.sp,
+                      size: 14.sp,
                       color: AppColor.slateGrey,
                     ),
-                    5.wS,
+                    6.wS,
                     Expanded(
                       child: Text(
                         displayPhone,
@@ -150,7 +153,7 @@ class ProfileUserCardWidget extends StatelessWidget {
                         overflow: TextOverflow.ellipsis,
                         style: textTheme.bodySmall?.copyWith(
                           color: AppColor.slateGrey,
-                          fontSize: 11.5.sp,
+                          fontSize: 12.5.sp,
                           fontWeight: FontWeight.w500,
                         ),
                       ),

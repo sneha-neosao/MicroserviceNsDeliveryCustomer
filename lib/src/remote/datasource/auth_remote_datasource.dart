@@ -23,6 +23,9 @@ sealed class RemoteDataSource {
 
   /// Home
   Future<HomeResponse> HomeData(HomeParams params);
+
+  /// Profile
+  Future<ProfileResponse> ProfileDetails();
 }
 
 
@@ -286,6 +289,32 @@ class RemoteDataSourceImpl implements RemoteDataSource {
       );
 
       final respData = HomeResponse.fromJson(response);
+      return respData;
+    } on EmptyException {
+      throw AuthException();
+    } catch (e) {
+      logger.e(e);
+      if (e is ApiException) {
+        rethrow;
+      }
+      throw ServerException();
+    }
+  }
+
+  @override
+  Future<ProfileResponse> ProfileDetails() async {
+    try {
+      final response = await _helper.execute(
+        method: Method.get,
+        url: ApiUrl.profile,
+        options: Options(
+          headers: {
+            'accept': '*/*',
+          },
+        ),
+      );
+
+      final respData = ProfileResponse.fromJson(response);
       return respData;
     } on EmptyException {
       throw AuthException();
