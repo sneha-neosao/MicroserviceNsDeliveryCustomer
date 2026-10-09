@@ -9,6 +9,7 @@ import '../features/home/presentation/pages/home_screen.dart';
 import '../features/login/presentation/pages/login_screen.dart';
 import '../features/main_screen/presentation/pages/main_screen.dart';
 import '../features/otp/presentation/pages/verify_otp_screen.dart';
+import '../features/profile/presentation/pages/edit_profile_screen.dart';
 import '../features/profile/presentation/pages/profile_screen.dart';
 import '../features/register/presentation/pages/register_screen.dart';
 import '../features/search/presentation/pages/search_screen.dart';
@@ -92,6 +93,14 @@ class AppRouteConf {
               address: address ?? const AddressModel(),
             ),
           );
+        },
+      ),
+
+      GoRoute(
+        path: AppRoute.editProfile.path,
+        name: AppRoute.editProfile.name,
+        pageBuilder: (context, state) {
+          return _fadePage(const EditProfileScreen());
         },
       ),
 

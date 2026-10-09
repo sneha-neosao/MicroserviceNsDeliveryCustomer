@@ -199,12 +199,15 @@ class _ProfileScreenContentState extends State<_ProfileScreenContent> {
                                 name: currentName,
                                 phone: currentPhone,
                                 profileImage: currentImage,
-                                onEditTap: () {
-                                  appSnackBar(
-                                    context,
-                                    AppColor.deliveryButtonStart,
-                                    'Edit profile opened',
+                                onEditTap: () async {
+                                  final result = await context.pushNamed(
+                                    AppRoute.editProfile.name,
                                   );
+                                  if (result == true && context.mounted) {
+                                    context
+                                        .read<ProfileDetailsBloc>()
+                                        .add(ProfileDetailsGetEvent());
+                                  }
                                 },
                               ),
                             );
