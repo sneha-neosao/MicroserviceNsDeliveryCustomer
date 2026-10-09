@@ -31,12 +31,16 @@
 
 ## 3. API Implementation Order & Naming Rules
 When adding an API, implement in this strict sequence:
-1. **API URL**: Add the URL method in `lib/core/api/api/api_url.dart`.
+1. **API URL**: Add static constant URL endpoint paths in `lib/src/core/api/api_url.dart`.
+  - **MANDATORY**: `ApiUrl` must contain ONLY pure static constant strings (`static const profile = "/web/profile";`, `static const home = "/web/home";`, `static const updateAddress = "/web/address/update";`).
+  - **NEVER** write functions or interpolate query strings / route parameters inside `ApiUrl`.
 2. **UseCase**: Create the use case in `domain/usecases/`.
 3. **Repository**: Create repository & implementation in `data/repository/`.
   - **Naming Convention**: Function names in repository MUST be **lower_case with underscores** (e.g., `profile_details`, `category_products`, `search_products`).
 4. **Remote DataSource**: Create in `data/datasources/`.
   - **Naming Convention**: Function names in Remote DataSource MUST have the **1st letter Capital / PascalCase** (e.g., `ProfileDetails`, `CategoryProducts`, `SearchProducts`).
+  - **Query & Payload Binding in Remote DataSource**: All query strings, query parameters, route parameters, and data payloads (`data = ...`, `String param = "?public_id=$publicId"`, `final url = "${ApiUrl.xyz}?..."`) MUST strictly be constructed and bound directly inside the **Remote DataSource** implementation methods, NOT in `ApiUrl`.
+  - **Direct Parameter Binding (No Empty/Null Checks)**: When binding parameters into payload maps or query strings in the Remote DataSource, bind parameters directly (e.g., `"email": params.email`, `"?offset=${params.offset}&limit=${params.limit}&lat=${params.lat}&lng=${params.lng}"`) without checking whether fields are null or empty.
 
 ## 4. BLoC Creation & Dependency Injection Order
 Always create state management in this exact sequence:

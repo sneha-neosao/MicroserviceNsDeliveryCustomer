@@ -17,28 +17,15 @@ class ApiUrl {
 
   static const addAddress = "/web/address/add";
 
-  static String updateAddress(String publicId) =>
-      "/web/address/update?public_id=$publicId";
+  static const updateAddress = "/web/address/update";
 
-  static String deleteAddress(String publicId) =>
-      "/web/address/delete?public_id=$publicId";
+  static const deleteAddress = "/web/address/delete";
 
   static const walletSummary = "/web/summary";
 
   static const profile = "/web/profile";
 
-  static String homeData({
-    int offset = 1,
-    int limit = 10,
-    double? lat,
-    double? lng,
-  }) {
-    String url = "/web/home?offset=$offset&limit=$limit";
-    if (lat != null && lng != null) {
-      url += "&lat=$lat&lng=$lng";
-    }
-    return url;
-  }
+  static const home = "/web/home";
 }
 
 

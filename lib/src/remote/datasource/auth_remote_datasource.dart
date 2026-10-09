@@ -107,7 +107,7 @@ class RemoteDataSourceImpl implements RemoteDataSource {
     try {
       final data = {
         "name": params.name,
-        if (params.email != null && params.email!.isNotEmpty) "email": params.email,
+        "email": params.email,
         "contact": params.contact,
       };
 
@@ -193,9 +193,11 @@ class RemoteDataSourceImpl implements RemoteDataSource {
   @override
   Future<UpdateAddressResponse> EditAddress(EditAddressParams params) async {
     try {
+      final url = "${ApiUrl.updateAddress}?public_id=${params.publicId}";
+
       final response = await _helper.execute(
         method: Method.put,
-        url: ApiUrl.updateAddress(params.publicId),
+        url: url,
         data: params.toJson(),
         options: Options(
           headers: {
@@ -221,9 +223,11 @@ class RemoteDataSourceImpl implements RemoteDataSource {
   @override
   Future<DeleteAddressResponse> DeleteAddress(DeleteAddressParams params) async {
     try {
+      final param = "?public_id=${params.publicId}";
+
       final response = await _helper.execute(
         method: Method.delete,
-        url: ApiUrl.deleteAddress(params.publicId),
+        url: ApiUrl.deleteAddress + param,
         options: Options(
           headers: {
             'accept': '*/*',
@@ -273,14 +277,12 @@ class RemoteDataSourceImpl implements RemoteDataSource {
   @override
   Future<HomeResponse> HomeData(HomeParams params) async {
     try {
+      final url =
+          "${ApiUrl.home}?offset=${params.offset}&limit=${params.limit}&lat=${params.lat}&lng=${params.lng}";
+
       final response = await _helper.execute(
         method: Method.get,
-        url: ApiUrl.homeData(
-          offset: params.offset,
-          limit: params.limit,
-          lat: params.lat,
-          lng: params.lng,
-        ),
+        url: url,
         options: Options(
           headers: {
             'accept': '*/*',
