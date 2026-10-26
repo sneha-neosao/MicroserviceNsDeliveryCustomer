@@ -79,7 +79,7 @@ class EditProfileTextField extends StatelessWidget {
           inputFormatters: inputFormatters,
           autovalidateMode: AutovalidateMode.onUserInteraction,
           style: textTheme.bodyLarge?.copyWith(
-            color: readOnly ? AppColor.slateGrey : AppColor.black,
+            color: AppColor.black,
             fontSize: 15.sp,
             fontWeight: FontWeight.w600,
           ),
@@ -96,9 +96,7 @@ class EditProfileTextField extends StatelessWidget {
                 prefixIconAsset,
                 width: 18.w,
                 height: 18.w,
-                color: readOnly
-                    ? AppColor.slateGrey
-                    : AppColor.deliveryGreen,
+                color: AppColor.deliveryGreen,
                 fit: BoxFit.contain,
               ),
             ),
@@ -106,25 +104,15 @@ class EditProfileTextField extends StatelessWidget {
               minWidth: 48.w,
               minHeight: 22.h,
             ),
-            suffixIcon: suffixIcon ??
-                (readOnly
-                    ? Padding(
-                        padding: EdgeInsets.only(right: 16.w),
-                        child: Icon(
-                          Icons.lock_outline_rounded,
-                          size: 18.sp,
-                          color: AppColor.slateGrey,
-                        ),
-                      )
-                    : null),
-            suffixIconConstraints: BoxConstraints(
-              minWidth: 40.w,
-              minHeight: 22.h,
-            ),
+            suffixIcon: suffixIcon,
+            suffixIconConstraints: suffixIcon != null
+                ? BoxConstraints(
+                    minWidth: 40.w,
+                    minHeight: 22.h,
+                  )
+                : null,
             filled: true,
-            fillColor: readOnly
-                ? AppColor.deliveryInputBg.withValues(alpha: 0.6)
-                : AppColor.deliveryInputBg,
+            fillColor: AppColor.deliveryInputBg,
             contentPadding: EdgeInsets.symmetric(
               horizontal: 20.w,
               vertical: 16.h,
@@ -150,10 +138,8 @@ class EditProfileTextField extends StatelessWidget {
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(30.r),
-              borderSide: BorderSide(
-                color: readOnly
-                    ? AppColor.deliveryInputBorder
-                    : AppColor.deliveryGreen,
+              borderSide: const BorderSide(
+                color: AppColor.deliveryGreen,
                 width: 1.5,
               ),
             ),
