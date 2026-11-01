@@ -7,11 +7,15 @@ class ApiUrl {
 
   static const refreshToken = "/auth/refresh/";
 
-  static const sendOtp = "/web/send-otp";
+  static const sendOtp = "/web/auth/send-otp";
 
-  static const verifyOtp = "/web/verify-otp";
+  static const verifyOtp = "/web/auth/verify-otp";
 
-  static const register = "/web/register";
+  static const register = "/web/auth/register";
+
+  static const registerVerifyOtp = "/web/auth/register/verify-otp";
+
+  static const checkUserExist = "/web/auth/check-user-exist";
 
   static const addressList = "/web/address/list";
 

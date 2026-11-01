@@ -58,6 +58,7 @@ class VerifyOtpResponse {
 
 class VerifyOtpData {
   final bool isRegistered;
+  final bool isExist;
   final String accessToken;
   final String refreshToken;
   final String tokenType;
@@ -66,6 +67,7 @@ class VerifyOtpData {
 
   const VerifyOtpData({
     this.isRegistered = false,
+    this.isExist = false,
     this.accessToken = '',
     this.refreshToken = '',
     this.tokenType = '',
@@ -80,8 +82,15 @@ class VerifyOtpData {
 
   factory VerifyOtpData.fromJson(Map<String, dynamic>? json) {
     if (json == null) return const VerifyOtpData();
+    final bool? isExistRaw = json['is_exist'] as bool?;
+    final bool? isRegRaw = json['is_registered'] as bool?;
+    final bool hasCustomerAndToken = json['customer'] != null &&
+        (json['access_token']?.toString().isNotEmpty ?? false);
+    final bool resolvedExist = isExistRaw ?? isRegRaw ?? hasCustomerAndToken;
+
     return VerifyOtpData(
-      isRegistered: json['is_registered'] as bool? ?? false,
+      isRegistered: resolvedExist,
+      isExist: resolvedExist,
       accessToken: json['access_token']?.toString() ?? '',
       refreshToken: json['refresh_token']?.toString() ?? '',
       tokenType: json['token_type']?.toString() ?? '',
@@ -94,6 +103,7 @@ class VerifyOtpData {
 
   Map<String, dynamic> toJson() => {
     'is_registered': isRegistered,
+    'is_exist': isExist,
     'access_token': accessToken,
     'refresh_token': refreshToken,
     'token_type': tokenType,
@@ -104,18 +114,22 @@ class VerifyOtpData {
 
 class CustomerData {
   final int id;
+  final String uuId;
   final String publicId;
   final String name;
   final String email;
   final String contact;
+  final String alternateNumber;
   final bool isActive;
 
   const CustomerData({
     this.id = 0,
+    this.uuId = '',
     this.publicId = '',
     this.name = '',
     this.email = '',
     this.contact = '',
+    this.alternateNumber = '',
     this.isActive = false,
   });
 
@@ -126,22 +140,28 @@ class CustomerData {
 
   factory CustomerData.fromJson(Map<String, dynamic>? json) {
     if (json == null) return const CustomerData();
+    final resolvedUuId = json['uu_id']?.toString() ?? json['public_id']?.toString() ?? '';
+    final resolvedPublicId = json['public_id']?.toString() ?? json['uu_id']?.toString() ?? '';
     return CustomerData(
       id: (json['id'] as num?)?.toInt() ?? 0,
-      publicId: json['public_id']?.toString() ?? '',
+      uuId: resolvedUuId,
+      publicId: resolvedPublicId,
       name: json['name']?.toString() ?? '',
       email: json['email']?.toString() ?? '',
       contact: json['contact']?.toString() ?? '',
+      alternateNumber: json['alternate_number']?.toString() ?? '',
       isActive: json['is_active'] as bool? ?? false,
     );
   }
 
   Map<String, dynamic> toJson() => {
     'id': id,
+    'uu_id': uuId,
     'public_id': publicId,
     'name': name,
     'email': email,
     'contact': contact,
+    'alternate_number': alternateNumber,
     'is_active': isActive,
   };
 }

@@ -3,16 +3,18 @@ import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import '../../../core/theme/app_color.dart';
 
-/// 6-digit OTP pin input widget with rounded capsules and dash placeholders,
-/// exactly matching the provided UI design.
+/// OTP pin input widget with rounded capsules and dash placeholders,
+/// configurable length defaulting to 4 digits as per api.md specification.
 class VerifyOtpPinInputWidget extends StatefulWidget {
   final TextEditingController controller;
+  final int length;
   final ValueChanged<String>? onChanged;
   final ValueChanged<String>? onCompleted;
 
   const VerifyOtpPinInputWidget({
     super.key,
     required this.controller,
+    this.length = 4,
     this.onChanged,
     this.onCompleted,
   });
@@ -42,7 +44,7 @@ class _VerifyOtpPinInputWidgetState extends State<VerifyOtpPinInputWidget> {
     setState(() {});
     final text = widget.controller.text;
     widget.onChanged?.call(text);
-    if (text.length == 6) {
+    if (text.length == widget.length) {
       widget.onCompleted?.call(text);
     }
   }
@@ -66,13 +68,13 @@ class _VerifyOtpPinInputWidgetState extends State<VerifyOtpPinInputWidget> {
               autofocus: true,
               inputFormatters: [
                 FilteringTextInputFormatter.digitsOnly,
-                LengthLimitingTextInputFormatter(6),
+                LengthLimitingTextInputFormatter(widget.length),
               ],
             ),
           ),
         ),
 
-        // Visual 6-cell layout
+        // Visual cell layout
         GestureDetector(
           behavior: HitTestBehavior.opaque,
           onTap: () {
@@ -82,14 +84,16 @@ class _VerifyOtpPinInputWidgetState extends State<VerifyOtpPinInputWidget> {
           },
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: List.generate(6, (index) {
+            children: List.generate(widget.length, (index) {
               final isFilled = index < text.length;
               final isCurrent = _focusNode.hasFocus &&
-                  (index == text.length || (text.length == 6 && index == 5));
+                  (index == text.length ||
+                      (text.length == widget.length &&
+                          index == widget.length - 1));
 
               return Container(
-                width: 46.w,
-                height: 48.h,
+                width: widget.length == 4 ? 64.w : 46.w,
+                height: 52.h,
                 alignment: Alignment.center,
                 decoration: BoxDecoration(
                   color: AppColor.deliveryInputBg,
@@ -112,7 +116,7 @@ class _VerifyOtpPinInputWidgetState extends State<VerifyOtpPinInputWidget> {
                     ? Text(
                         text[index],
                         style: textTheme.headlineMedium?.copyWith(
-                          fontSize: 20.sp,
+                          fontSize: 22.sp,
                           fontWeight: FontWeight.w700,
                           color: AppColor.black,
                         ),

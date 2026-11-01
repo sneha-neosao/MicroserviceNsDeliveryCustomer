@@ -27,7 +27,7 @@ class VerifyOtpFormBloc extends Bloc<VerifyOtpFormEvent, VerifyOtpFormState> {
 
   bool inputValidator(String otp) {
     final trimmed = otp.trim();
-    if (trimmed.length == 6 && int.tryParse(trimmed) != null) {
+    if (trimmed.length == 4 && int.tryParse(trimmed) != null) {
       return true;
     }
     return false;

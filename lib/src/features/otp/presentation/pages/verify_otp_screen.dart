@@ -70,7 +70,7 @@ class _VerifyOtpScreenState extends State<VerifyOtpScreen> {
     final otp = _otpController.text.trim();
     final mobile = widget.phone?.trim() ?? '';
 
-    if (otp.length < 6) {
+    if (otp.length < 4) {
       appSnackBar(
         context,
         AppColor.bright_red,
@@ -110,9 +110,12 @@ class _VerifyOtpScreenState extends State<VerifyOtpScreen> {
       child: BlocConsumer<VerifyOtpBloc, VerifyOtpState>(
         listener: (context, state) async {
           if (state is VerifyOtpSuccessState) {
-            final isRegistered = state.data.data?.isRegistered ?? false;
+            final isExist = state.data.data?.isExist ??
+                state.data.data?.isRegistered ??
+                (state.data.data?.customer != null &&
+                    (state.data.data?.accessToken.isNotEmpty ?? false));
 
-            if (isRegistered) {
+            if (isExist) {
               await SessionManager.saveVerifyOtpSession(state.data);
               if (context.mounted) {
                 context.goNamed(AppRoute.home.name);

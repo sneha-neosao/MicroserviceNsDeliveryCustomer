@@ -44,7 +44,7 @@ class VerifyOtpUseCase implements UseCase<VerifyOtpResponse, VerifyOtpParams> {
       return Left(EmptyFailure('enter_valid_otp_error'.tr()));
     }
 
-    if (trimmedOtp.length != 6 || int.tryParse(trimmedOtp) == null) {
+    if (trimmedOtp.length != 4 || int.tryParse(trimmedOtp) == null) {
       return Left(InvalidOtpFailure('enter_valid_otp_error'.tr()));
     }
 

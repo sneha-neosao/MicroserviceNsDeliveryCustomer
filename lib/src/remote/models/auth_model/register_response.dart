@@ -59,6 +59,7 @@ class RegisterResponse {
 
 class RegisterData {
   final bool isRegistered;
+  final bool isExist;
   final String accessToken;
   final String refreshToken;
   final String? tokenType;
@@ -66,7 +67,8 @@ class RegisterData {
   final bool cartMerged;
 
   const RegisterData({
-    this.isRegistered = false,
+    this.isRegistered = true,
+    this.isExist = true,
     this.accessToken = '',
     this.refreshToken = '',
     this.tokenType,
@@ -81,8 +83,13 @@ class RegisterData {
 
   factory RegisterData.fromJson(Map<String, dynamic>? json) {
     if (json == null) return const RegisterData();
+    final bool? isExistRaw = json['is_exist'] as bool?;
+    final bool? isRegRaw = json['is_registered'] as bool?;
+    final bool resolved = isExistRaw ?? isRegRaw ?? true;
+
     return RegisterData(
-      isRegistered: json['is_registered'] as bool? ?? false,
+      isRegistered: resolved,
+      isExist: resolved,
       accessToken: json['access_token']?.toString() ?? '',
       refreshToken: json['refresh_token']?.toString() ?? '',
       tokenType: json['token_type']?.toString(),
@@ -95,6 +102,7 @@ class RegisterData {
 
   Map<String, dynamic> toJson() => {
     'is_registered': isRegistered,
+    'is_exist': isExist,
     'access_token': accessToken,
     'refresh_token': refreshToken,
     if (tokenType != null) 'token_type': tokenType,

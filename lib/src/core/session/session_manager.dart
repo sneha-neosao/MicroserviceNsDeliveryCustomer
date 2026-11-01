@@ -155,6 +155,9 @@ class SessionManager {
         if (customer.publicId.isNotEmpty) {
           await saveUserPublicId(customer.publicId);
         }
+        if (customer.uuId.isNotEmpty) {
+          await saveUserUuId(customer.uuId);
+        }
       }
     }
   }
@@ -201,6 +204,9 @@ class SessionManager {
         }
         if (customer.publicId.isNotEmpty) {
           await saveUserPublicId(customer.publicId);
+        }
+        if (customer.uuId.isNotEmpty) {
+          await saveUserUuId(customer.uuId);
         }
       }
     }
@@ -263,11 +269,23 @@ class SessionManager {
   static Future<void> saveUserPublicId(String? publicId) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString("userPublicId", publicId ?? "");
+    await prefs.setString("userUuId", publicId ?? "");
   }
 
   static Future<String?> getUserPublicId() async {
     final prefs = await SharedPreferences.getInstance();
-    return prefs.getString("userPublicId");
+    return prefs.getString("userPublicId") ?? prefs.getString("userUuId");
+  }
+
+  static Future<void> saveUserUuId(String? uuId) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString("userUuId", uuId ?? "");
+    await prefs.setString("userPublicId", uuId ?? "");
+  }
+
+  static Future<String?> getUserUuId() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString("userUuId") ?? prefs.getString("userPublicId");
   }
 
   static Future<void> saveDeliveryAddress({
